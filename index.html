@@ -1,1 +1,1598 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学校備品 貸出・返却管理システム LabStock</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+        }
+        .modal-backdrop {
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full flex flex-col transition-colors duration-200">
 
+    <!-- Header Navigation -->
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- App Title & Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-brand-600 text-white rounded-xl shadow-md flex items-center justify-center">
+                        <i class="fa-solid fa-boxes-packing text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="font-bold text-lg sm:text-xl text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                            LabStock <span class="text-xs px-2 py-0.5 rounded-full bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300 font-medium">備品管理</span>
+                        </span>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">学校・研究室・部活動の機材管理システム</p>
+                    </div>
+                </div>
+
+                <!-- Central Navigation Tabs (Desktop) -->
+                <nav class="hidden md:flex space-x-1 bg-slate-100 dark:bg-slate-700/50 p-1 rounded-xl">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-tab text-slate-600 dark:text-slate-300 hover:text-slate-900 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie"></i> ダッシュボード
+                    </button>
+                    <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-tab text-slate-600 dark:text-slate-300 hover:text-slate-900 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-toolbox"></i> 備品一覧・管理
+                    </button>
+                    <button onclick="switchTab('history')" id="nav-history" class="nav-tab text-slate-600 dark:text-slate-300 hover:text-slate-900 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left"></i> 貸出・返却履歴
+                    </button>
+                </nav>
+
+                <!-- User Profile & Action Controls -->
+                <div class="flex items-center space-x-3">
+                    <!-- Dark Mode Toggle -->
+                    <button id="theme-toggle" onclick="toggleDarkMode()" class="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition" title="テーマ切り替え">
+                        <i class="fa-solid fa-moon dark:hidden text-lg"></i>
+                        <i class="fa-solid fa-sun hidden dark:block text-lg text-amber-400"></i>
+                    </button>
+
+                    <!-- Firebase Config Button -->
+                    <button onclick="openModal('firebase-modal')" class="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition relative" title="Firebase設定">
+                        <i class="fa-solid fa-gear text-lg"></i>
+                        <span id="firebase-status-dot" class="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white dark:border-slate-800" title="デモモード（ローカル同期）"></span>
+                    </button>
+
+                    <!-- User Auth Info / Login Button -->
+                    <div id="user-auth-area">
+                        <!-- Dynamic insertion by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Bar -->
+        <div class="md:hidden border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex justify-around p-2">
+            <button onclick="switchTab('dashboard')" id="mobile-nav-dashboard" class="mobile-nav-tab flex-1 py-1 text-center text-xs text-slate-600 dark:text-slate-400 font-medium">
+                <i class="fa-solid fa-chart-pie text-lg block mb-0.5"></i> 概要
+            </button>
+            <button onclick="switchTab('inventory')" id="mobile-nav-inventory" class="mobile-nav-tab flex-1 py-1 text-center text-xs text-slate-600 dark:text-slate-400 font-medium">
+                <i class="fa-solid fa-toolbox text-lg block mb-0.5"></i> 備品一覧
+            </button>
+            <button onclick="switchTab('history')" id="mobile-nav-history" class="mobile-nav-tab flex-1 py-1 text-center text-xs text-slate-600 dark:text-slate-400 font-medium">
+                <i class="fa-solid fa-clock-rotate-left text-lg block mb-0.5"></i> 履歴
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- Unauthenticated Prompt Banner -->
+        <div id="auth-warning-banner" class="hidden mb-6 p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-3 bg-amber-100 dark:bg-amber-900/60 rounded-xl text-amber-600 dark:text-amber-400">
+                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-amber-900 dark:text-amber-200 text-sm">ログインしていません</h4>
+                    <p class="text-xs text-amber-700 dark:text-amber-300">備品の貸出登録を行うにはGoogleアカウントでのログインが必要です。</p>
+                </div>
+            </div>
+            <button onclick="loginWithGoogle()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shadow-sm transition whitespace-nowrap flex items-center gap-2">
+                <i class="fa-brands fa-google"></i> 今すぐログイン
+            </button>
+        </div>
+
+        <!-- VIEW 1: DASHBOARD -->
+        <section id="view-dashboard" class="space-y-6">
+            <!-- Stat Cards Grid -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                <!-- Card 1: Total Items -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">登録済み備品</p>
+                        <h3 id="stat-total-items" class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1">0</h3>
+                        <p class="text-[11px] text-slate-400 mt-1">全カテゴリ合計</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </div>
+                </div>
+
+                <!-- Card 2: Currently Borrowed -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">貸出中備品</p>
+                        <h3 id="stat-borrowed-items" class="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 mt-1">0</h3>
+                        <p id="stat-borrow-rate" class="text-[11px] text-slate-400 mt-1">利用率 0%</p>
+                    </div>
+                    <div class="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-hand-holding-hand"></i>
+                    </div>
+                </div>
+
+                <!-- Card 3: Overdue Warning -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">返却期限切れ</p>
+                        <h3 id="stat-overdue-items" class="text-2xl sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 mt-1">0</h3>
+                        <p class="text-[11px] text-rose-500 mt-1 font-medium">要対応・返却催促</p>
+                    </div>
+                    <div class="w-12 h-12 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-2xl flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                    </div>
+                </div>
+
+                <!-- Card 4: Available Items -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">即時利用可能</p>
+                        <h3 id="stat-available-items" class="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">0</h3>
+                        <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">貸出可ステータス</p>
+                    </div>
+                    <div class="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Overdue & Immediate Action Panel (Left 2 cols) -->
+                <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm p-5 space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
+                        <h3 class="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
+                            返却期限切れ・注意要対応アラート
+                        </h3>
+                        <span id="overdue-badge-count" class="text-xs bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300 font-semibold px-2.5 py-0.5 rounded-full">0件</span>
+                    </div>
+
+                    <div id="overdue-items-list" class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                        <!-- Injected dynamically by JS -->
+                    </div>
+                </div>
+
+                <!-- Category Breakdown Summary (Right 1 col) -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm p-5 space-y-4">
+                    <h3 class="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700/60 pb-3">
+                        <i class="fa-solid fa-chart-bar text-brand-600"></i> カテゴリ別保有内訳
+                    </h3>
+                    <div id="category-breakdown-list" class="space-y-3 text-sm">
+                        <!-- Injected dynamically by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Loans Activity Timeline -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm p-5 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-brand-600"></i> 最近の貸出・返却アクティビティ
+                    </h3>
+                    <button onclick="switchTab('history')" class="text-xs text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1">
+                        すべての履歴を見る <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                            <tr>
+                                <th class="p-3">日時</th>
+                                <th class="p-3">備品名・管理ID</th>
+                                <th class="p-3">利用者 / 学籍番号</th>
+                                <th class="p-3">区分</th>
+                                <th class="p-3 text-right">返却期限</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-activity-table-body" class="divide-y divide-slate-100 dark:divide-slate-700/60">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: INVENTORY LIST & MANAGEMENT -->
+        <section id="view-inventory" class="hidden space-y-6">
+            <!-- Search & Controls Bar -->
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                <!-- Search Input -->
+                <div class="relative flex-grow max-w-md">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="inventory-search-input" oninput="applyFilters()" placeholder="備品名、管理番号、保管場所で検索..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
+                </div>
+
+                <!-- Filters & Category Dropdowns -->
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <!-- Category Select -->
+                    <select id="filter-category" onchange="applyFilters()" class="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-medium focus:ring-2 focus:ring-brand-500 transition">
+                        <option value="ALL">すべてのカテゴリ</option>
+                        <option value="手工具">手工具</option>
+                        <option value="電子工作工具">電子工作工具</option>
+                        <option value="測定器">測定器</option>
+                        <option value="AV機器">AV機器</option>
+                        <option value="PC・IT機器">PC・IT機器</option>
+                        <option value="実験器具">実験器具</option>
+                        <option value="その他">その他</option>
+                    </select>
+
+                    <!-- Status Select -->
+                    <select id="filter-status" onchange="applyFilters()" class="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-medium focus:ring-2 focus:ring-brand-500 transition">
+                        <option value="ALL">すべてのステータス</option>
+                        <option value="AVAILABLE">貸出可能</option>
+                        <option value="BORROWED">貸出中</option>
+                        <option value="MAINTENANCE">点検中</option>
+                    </select>
+
+                    <!-- Add New Item Button -->
+                    <button onclick="openAddEquipmentModal()" class="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-500/20 transition flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> 新規備品登録
+                    </button>
+                </div>
+            </div>
+
+            <!-- Equipment Grid Display -->
+            <div id="equipment-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                <!-- Dynamically generated equipment cards -->
+            </div>
+
+            <!-- Empty State Display -->
+            <div id="empty-inventory-state" class="hidden text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
+                <div class="w-16 h-16 bg-slate-100 dark:bg-slate-700 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <h4 class="font-bold text-slate-700 dark:text-slate-200 text-base">該当する備品が見つかりません</h4>
+                <p class="text-xs text-slate-500 mt-1">検索ワードやフィルター条件を変更して再度お試しください。</p>
+            </div>
+        </section>
+
+        <!-- VIEW 3: LOAN & RETURN HISTORY -->
+        <section id="view-history" class="hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-receipt text-brand-600"></i> 貸出・返却ログ一覧
+                        </h3>
+                        <p class="text-xs text-slate-500">過去に行われたすべての貸出および返却記録の一覧です</p>
+                    </div>
+
+                    <!-- History Search & CSV Export -->
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <input type="text" id="history-search-input" oninput="renderHistory()" placeholder="利用者・備品名・管理IDで検索..." class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <button onclick="exportHistoryCSV()" class="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-file-csv text-emerald-600"></i> CSV出力
+                        </button>
+                    </div>
+                </div>
+
+                <!-- History Table -->
+                <div class="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-700">
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700/50 uppercase">
+                            <tr>
+                                <th class="p-3.5">ステータス</th>
+                                <th class="p-3.5">備品名 / 管理ID</th>
+                                <th class="p-3.5">利用者 / 所属・学籍番号</th>
+                                <th class="p-3.5">利用目的</th>
+                                <th class="p-3.5">貸出日</th>
+                                <th class="p-3.5">返却予定日 / 完了日</th>
+                                <th class="p-3.5 text-right">メモ・状況</th>
+                            </tr>
+                        </thead>
+                        <tbody id="full-history-table-body" class="divide-y divide-slate-100 dark:divide-slate-700/60">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: Equipment Add / Edit Modal -->
+    <div id="modal-equipment" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="modal-backdrop fixed inset-0" onclick="closeModal('equipment-modal')"></div>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full z-10 overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/80">
+                <h3 id="equipment-modal-title" class="font-bold text-slate-800 dark:text-slate-100 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-brand-600"></i> 備品の新規登録
+                </h3>
+                <button onclick="closeModal('equipment-modal')" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <form id="equipment-form" onsubmit="saveEquipment(event)" class="p-6 space-y-4 overflow-y-auto flex-grow">
+                <input type="hidden" id="eq-id">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">備品名 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="eq-name" required placeholder="例: デジタルオシロスコープ 100MHz" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">管理ID / ナンバー <span class="text-rose-500">*</span></label>
+                        <input type="text" id="eq-code" required placeholder="例: OSC-001" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">カテゴリ <span class="text-rose-500">*</span></label>
+                        <select id="eq-category" required class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="手工具">手工具</option>
+                            <option value="電子工作工具">電子工作工具</option>
+                            <option value="測定器">測定器</option>
+                            <option value="AV機器">AV機器</option>
+                            <option value="PC・IT機器">PC・IT機器</option>
+                            <option value="実験器具">実験器具</option>
+                            <option value="その他">その他</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">保管場所 <span class="text-rose-500">*</span></label>
+                        <input type="text" id="eq-location" required placeholder="例: 302実験室 棚B-2" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">初期ステータス</label>
+                        <select id="eq-status" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="AVAILABLE">貸出可能</option>
+                            <option value="MAINTENANCE">点検中</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">画像URL（省略時はカテゴリデフォルトアイコン）</label>
+                    <input type="url" id="eq-image" placeholder="https://example.com/item.jpg" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">説明・備品仕様メモ</label>
+                    <textarea id="eq-description" rows="2" placeholder="注意事項、付属品（ケーブル、ケース有など）" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                    <button type="button" id="eq-delete-btn" onclick="deleteEquipment()" class="hidden px-3 py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl text-xs font-semibold transition">
+                        <i class="fa-solid fa-trash"></i> 削除
+                    </button>
+                    <div class="flex items-center gap-2 ml-auto">
+                        <button type="button" onclick="closeModal('equipment-modal')" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold">キャンセル</button>
+                        <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-500/20">保存する</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Borrow / Checkout Modal -->
+    <div id="modal-checkout" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="modal-backdrop fixed inset-0" onclick="closeModal('checkout-modal')"></div>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full z-10 overflow-hidden border border-slate-200 dark:border-slate-700">
+            <div class="px-6 py-4 bg-brand-600 text-white flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-hand-holding"></i> 備品の貸出手続き
+                </h3>
+                <button onclick="closeModal('checkout-modal')" class="text-white/80 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="checkout-form" onsubmit="processCheckout(event)" class="p-6 space-y-4">
+                <input type="hidden" id="checkout-item-id">
+
+                <!-- Summary of Selected Item -->
+                <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                    <div class="w-10 h-10 bg-brand-100 dark:bg-brand-900/50 text-brand-600 rounded-lg flex items-center justify-center text-lg font-bold">
+                        <i class="fa-solid fa-box"></i>
+                    </div>
+                    <div>
+                        <h4 id="checkout-item-name" class="font-bold text-sm text-slate-800 dark:text-slate-100">---</h4>
+                        <p id="checkout-item-code" class="text-xs text-slate-500">ID: ---</p>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">借用者 氏名 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="checkout-user-name" required placeholder="山田 太郎" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">学籍番号 / 教職員ID / 所属クラス <span class="text-rose-500">*</span></label>
+                    <input type="text" id="checkout-user-id" required placeholder="例: 22M305 / ロボット工学研究室" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">貸出開始日</label>
+                        <input type="date" id="checkout-start-date" readonly class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-sm text-slate-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">返却予定日 <span class="text-rose-500">*</span></label>
+                        <input type="date" id="checkout-due-date" required class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">利用目的 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="checkout-purpose" required placeholder="例: 卒業制作ロボット回路基板の半田付け実験" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('checkout-modal')" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold">キャンセル</button>
+                    <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-500/20">貸出を完了する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Return Item Modal -->
+    <div id="modal-return" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="modal-backdrop fixed inset-0" onclick="closeModal('return-modal')"></div>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full z-10 overflow-hidden border border-slate-200 dark:border-slate-700">
+            <div class="px-6 py-4 bg-emerald-600 text-white flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-left"></i> 備品の返却手続き
+                </h3>
+                <button onclick="closeModal('return-modal')" class="text-white/80 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="return-form" onsubmit="processReturn(event)" class="p-6 space-y-4">
+                <input type="hidden" id="return-item-id">
+                <input type="hidden" id="return-loan-id">
+
+                <!-- Item Return Summary Card -->
+                <div class="p-3.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+                    <h4 id="return-item-name" class="font-bold text-sm text-slate-800 dark:text-slate-100">---</h4>
+                    <p id="return-borrower-info" class="text-xs text-slate-500">借用者: ---</p>
+                    <p id="return-due-info" class="text-xs text-slate-500">返却期限: ---</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">返却時の状態チェック</label>
+                    <select id="return-condition" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <option value="GOOD">正常・異常なし</option>
+                        <option value="NEEDS_CLEANING">清掃が必要</option>
+                        <option value="DAMAGED">破損・故障あり（要点検）</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">返却メモ・引き継ぎ事項</label>
+                    <textarea id="return-notes" rows="2" placeholder="付属品すべて返却確認済み / 電子パーツの補充が必要など" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('return-modal')" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold">キャンセル</button>
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-500/20">返却処理を確定する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: Firebase Configuration Modal -->
+    <div id="modal-firebase" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="modal-backdrop fixed inset-0" onclick="closeModal('firebase-modal')"></div>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full z-10 overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/80">
+                <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-cloud text-brand-600"></i> Firebase プロジェクト連携設定
+                </h3>
+                <button onclick="closeModal('firebase-modal')" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4 overflow-y-auto flex-grow text-xs">
+                <div class="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 p-3.5 rounded-xl text-blue-800 dark:text-blue-300 leading-relaxed space-y-1">
+                    <p class="font-bold"><i class="fa-solid fa-circle-info"></i> 設定方法ガイド</p>
+                    <p>Firebase Console (https://console.firebase.google.com/) でプロジェクトを作成し、Webアプリを追加して発行された `firebaseConfig` のJSONオブジェクトを貼り付けてください。</p>
+                    <p class="text-[11px] text-blue-600 dark:text-blue-400">※未入力の場合は<b>「デモ・ローカルストレージモード」</b>で動作します。</p>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Firebase Config (JSONフォーマット)</label>
+                    <textarea id="firebase-config-json" rows="8" placeholder='{
+  "apiKey": "AIzaSy...",
+  "authDomain": "your-app.firebaseapp.com",
+  "projectId": "your-app",
+  "storageBucket": "your-app.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:123456789:web:abcdef"
+}' class="w-full font-mono p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300">
+                    <p class="font-bold mb-1"><i class="fa-solid fa-lock"></i> Firestore 認証・セキュリティルール要件</p>
+                    <p class="text-[11px]">Google認証を有効にし、Firestoreのルールで `/artifacts/{appId}/public/data/equipment` への読み書きを許可してください。</p>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                <button type="button" onclick="resetDemoMode()" class="px-3 py-2 text-slate-500 hover:text-slate-700 text-xs font-semibold">
+                    デモモードに戻す
+                </button>
+                <div class="flex gap-2">
+                    <button type="button" onclick="closeModal('firebase-modal')" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold">閉じる</button>
+                    <button type="button" onclick="saveFirebaseConfig()" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md">接続設定を保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Overlay -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- MAIN ES MODULE SCRIPT -->
+    <script type="module">
+        // Firebase Modular SDK Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDocs, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // APP GLOBAL STATE
+        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'school-labstock-app';
+        
+        // Initial Demo Sample Equipment Data
+        const SAMPLE_EQUIPMENT = [
+            {
+                id: "eq-1",
+                code: "TOOL-001",
+                name: "ハッコー 温度調節機能付はんだごて FX-888D",
+                category: "電子工作工具",
+                location: "301実習室 作業台A-1",
+                status: "AVAILABLE", // AVAILABLE, BORROWED, MAINTENANCE
+                image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&auto=format&fit=crop&q=60",
+                description: "ステーション型はんだごて。温度設定200℃~480℃対応。耐熱マット付属。"
+            },
+            {
+                id: "eq-2",
+                code: "OSC-002",
+                name: "Keysight 2ch デジタルオシロスコープ 100MHz",
+                category: "測定器",
+                location: "302実験室 計測機器棚1段目",
+                status: "BORROWED",
+                image: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=300&auto=format&fit=crop&q=60",
+                description: "プローブ2本付属。USBメモリ保存可能。"
+            },
+            {
+                id: "eq-3",
+                code: "TAB-015",
+                name: "iPad Air 64GB (第5世代) + Apple Pencil",
+                category: "PC・IT機器",
+                location: "職員室 保管庫A-03",
+                status: "BORROWED",
+                image: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=300&auto=format&fit=crop&q=60",
+                description: "授業・プレゼン用タブレット。ケースおよびペンシルセット。"
+            },
+            {
+                id: "eq-4",
+                code: "CAM-001",
+                name: "SONY 4Kハンディカムビデオカメラ HDR-CX680",
+                category: "AV機器",
+                location: "メディア室 機材庫",
+                status: "AVAILABLE",
+                image: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=300&auto=format&fit=crop&q=60",
+                description: "三脚・予備バッテリー2個・SDカード64GB付属。"
+            },
+            {
+                id: "eq-5",
+                code: "DRL-003",
+                name: "マキタ 充電式ペンドライバドリル 7.2V",
+                category: "手工具",
+                location: "301実習室 工具棚C",
+                status: "MAINTENANCE",
+                image: "",
+                description: "先端ビットセット一式同梱。現在バッテリーチェック中。"
+            },
+            {
+                id: "eq-6",
+                code: "3DP-001",
+                name: "Bambu Lab P1S 3Dプリンター",
+                category: "電子工作工具",
+                location: "モノづくり工房 1階",
+                status: "AVAILABLE",
+                image: "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=300&auto=format&fit=crop&q=60",
+                description: "PLA/PETGフィラメント専用。SDカード・ノズルメンテナンスツール付属。"
+            }
+        ];
+
+        // Initial Demo Sample Loan Records
+        const todayStr = new Date().toISOString().split('T')[0];
+        const pastDateStr = new Date(Date.now() - 10 * 86400000).toISOString().split('T')[0];
+        const overdueDateStr = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0];
+        const futureDateStr = new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0];
+
+        const SAMPLE_LOANS = [
+            {
+                id: "loan-1",
+                itemId: "eq-2",
+                itemName: "Keysight 2ch デジタルオシロスコープ 100MHz",
+                borrowerName: "佐藤 健太",
+                borrowerId: "21T104 (情報工学科)",
+                purpose: "卒業研究でのノイズ波形測定",
+                startDate: pastDateStr,
+                dueDate: overdueDateStr, // Overdue!
+                returnedDate: null,
+                status: "BORROWED",
+                notes: "ケースごと持ち出し"
+            },
+            {
+                id: "loan-2",
+                itemId: "eq-3",
+                itemName: "iPad Air 64GB (第5世代) + Apple Pencil",
+                borrowerName: "高橋 美咲",
+                borrowerId: "教員 (電気電子工学科)",
+                purpose: "オープンキャンパス模擬授業プレゼン",
+                startDate: todayStr,
+                dueDate: futureDateStr,
+                returnedDate: null,
+                status: "BORROWED",
+                notes: "充電100%確認"
+            }
+        ];
+
+        // System State Structure
+        window.state = {
+            currentUser: null,
+            equipment: [],
+            loans: [],
+            isFirebaseActive: false,
+            activeTab: 'dashboard'
+        };
+
+        let db = null;
+        let auth = null;
+
+        // Initialize Application
+        window.addEventListener('DOMContentLoaded', async () => {
+            loadLocalState();
+            initTheme();
+            initFirebaseConnection();
+            renderUserAuthUI();
+            renderAllViews();
+        });
+
+        // Initialize Firebase Credentials (Custom Config or Sandbox Environment)
+        function initFirebaseConnection() {
+            try {
+                let firebaseConfig = null;
+                const savedConfig = localStorage.getItem('labstock_firebase_config');
+                
+                if (savedConfig) {
+                    firebaseConfig = JSON.parse(savedConfig);
+                } else if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    firebaseConfig = JSON.parse(__firebase_config);
+                }
+
+                if (firebaseConfig && firebaseConfig.apiKey) {
+                    const app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    // Auth State Observer
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            const userEmail = user.email || '';
+                            const fallbackName = userEmail ? userEmail.split('@')[0] : 'ゲストユーザー';
+                            window.state.currentUser = {
+                                name: user.displayName || fallbackName,
+                                email: userEmail || 'メールアドレス未登録',
+                                photoURL: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || fallbackName)}&background=0284c7&color=fff`,
+                                isGoogle: !user.isAnonymous
+                            };
+                        } else {
+                            window.state.currentUser = null;
+                        }
+                        renderUserAuthUI();
+                    });
+
+                    // Sign-in automatically via custom token or anonymous
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        signInWithCustomToken(auth, __initial_auth_token).catch(() => signInAnonymously(auth));
+                    } else {
+                        signInAnonymously(auth).catch(err => console.log("Anon auth notice:", err));
+                    }
+
+                    // Attach Realtime Listeners to Firestore
+                    subscribeFirestoreCollections();
+                    window.state.isFirebaseActive = true;
+                    document.getElementById('firebase-status-dot').className = "absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-800";
+                    document.getElementById('firebase-status-dot').title = "Firebase Firestore リアルタイム同期中";
+                } else {
+                    setupDemoMode();
+                }
+            } catch (err) {
+                console.warn("Firebase Init failed. Falling back to Demo mode.", err);
+                setupDemoMode();
+            }
+        }
+
+        function setupDemoMode() {
+            window.state.isFirebaseActive = false;
+            document.getElementById('firebase-status-dot').className = "absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white dark:border-slate-800";
+            document.getElementById('firebase-status-dot').title = "デモモード（ブラウザ保存）";
+            
+            // Demo User Default Setup
+            if (!window.state.currentUser) {
+                window.state.currentUser = {
+                    name: "山田 太郎 (デモ教員)",
+                    email: "yamada.teacher@school.ac.jp",
+                    photoURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+                    isGoogle: false
+                };
+            }
+            renderAllViews();
+        }
+
+        // Subscribe to Firestore Collections
+        function subscribeFirestoreCollections() {
+            if (!db) return;
+            const eqCol = collection(db, 'artifacts', APP_ID, 'public', 'data', 'equipment');
+            const loanCol = collection(db, 'artifacts', APP_ID, 'public', 'data', 'loans');
+
+            onSnapshot(eqCol, (snapshot) => {
+                if (!snapshot.empty) {
+                    const items = [];
+                    snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+                    window.state.equipment = items;
+                    saveLocalState();
+                    renderAllViews();
+                } else {
+                    // Seed initial data to Firestore if empty
+                    SAMPLE_EQUIPMENT.forEach(item => {
+                        setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'equipment', item.id), item).catch(e => console.warn("Seed error:", e));
+                    });
+                }
+            }, err => {
+                console.warn("Firestore Equipment error - Falling back to local storage:", err);
+                setupDemoMode();
+                showToast("Firestoreアクセス制限のため、ローカル保存モードで動作します", "info");
+            });
+
+            onSnapshot(loanCol, (snapshot) => {
+                if (!snapshot.empty) {
+                    const loans = [];
+                    snapshot.forEach(doc => loans.push({ id: doc.id, ...doc.data() }));
+                    window.state.loans = loans;
+                    saveLocalState();
+                    renderAllViews();
+                } else {
+                    SAMPLE_LOANS.forEach(loan => {
+                        setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'loans', loan.id), loan).catch(e => console.warn("Seed error:", e));
+                    });
+                }
+            }, err => {
+                console.warn("Firestore Loans error - Falling back to local storage:", err);
+                setupDemoMode();
+            });
+        }
+
+        // Local Storage Backup Operations
+        function loadLocalState() {
+            const eqData = localStorage.getItem('labstock_equipment');
+            const loanData = localStorage.getItem('labstock_loans');
+
+            window.state.equipment = eqData ? JSON.parse(eqData) : [...SAMPLE_EQUIPMENT];
+            window.state.loans = loanData ? JSON.parse(loanData) : [...SAMPLE_LOANS];
+        }
+
+        function saveLocalState() {
+            localStorage.setItem('labstock_equipment', JSON.stringify(window.state.equipment));
+            localStorage.setItem('labstock_loans', JSON.stringify(window.state.loans));
+        }
+
+        // GOOGLE LOGIN HANDLER
+        window.loginWithGoogle = async function() {
+            if (auth) {
+                try {
+                    const provider = new GoogleAuthProvider();
+                    await signInWithPopup(auth, provider);
+                    showToast("Googleアカウントでログインしました", "success");
+                } catch (err) {
+                    console.error("Google Auth error:", err);
+                    showToast("Googleログインに失敗しました。Popupプロック解除をご確認ください。", "error");
+                }
+            } else {
+                // Demo Mode User Login Switch
+                window.state.currentUser = {
+                    name: "研究室 太郎 (Google連動デモ)",
+                    email: "demo.student@school.ac.jp",
+                    photoURL: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80",
+                    isGoogle: true
+                };
+                renderUserAuthUI();
+                showToast("デモアカウントとしてログインしました", "success");
+            }
+        };
+
+        window.logout = async function() {
+            if (auth && auth.currentUser && !auth.currentUser.isAnonymous) {
+                await signOut(auth);
+            }
+            window.state.currentUser = null;
+            renderUserAuthUI();
+            showToast("ログアウトしました", "info");
+        };
+
+        // Render Navigation User Auth Component
+        function renderUserAuthUI() {
+            const authArea = document.getElementById('user-auth-area');
+            const authWarningBanner = document.getElementById('auth-warning-banner');
+
+            if (window.state.currentUser) {
+                authWarningBanner.classList.add('hidden');
+                authArea.innerHTML = `
+                    <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-700/60 p-1.5 pl-3 rounded-full border border-slate-200 dark:border-slate-700">
+                        <img src="${window.state.currentUser.photoURL}" alt="avatar" class="w-7 h-7 rounded-full object-cover border border-white dark:border-slate-600">
+                        <div class="hidden lg:block text-left pr-1">
+                            <p class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate max-w-[110px]">${window.state.currentUser.name}</p>
+                            <p class="text-[10px] text-slate-400 truncate max-w-[110px]">${window.state.currentUser.email}</p>
+                        </div>
+                        <button onclick="logout()" class="p-1.5 text-slate-400 hover:text-rose-500 rounded-full transition" title="ログアウト">
+                            <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                        </button>
+                    </div>
+                `;
+            } else {
+                authWarningBanner.classList.remove('hidden');
+                authArea.innerHTML = `
+                    <button onclick="loginWithGoogle()" class="px-3.5 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl text-xs font-bold hover:bg-slate-800 dark:hover:bg-white shadow-sm transition flex items-center gap-2">
+                        <i class="fa-brands fa-google text-amber-400"></i> Googleログイン
+                    </button>
+                `;
+            }
+        }
+
+        // UI Navigation Tab Switcher
+        window.switchTab = function(tabName) {
+            window.state.activeTab = tabName;
+
+            // Hide all views
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-inventory').classList.add('hidden');
+            document.getElementById('view-history').classList.add('hidden');
+
+            // Reset tab styling
+            document.querySelectorAll('.nav-tab, .mobile-nav-tab').forEach(el => {
+                el.classList.remove('bg-white', 'dark:bg-slate-800', 'text-brand-600', 'shadow-sm', 'font-bold');
+            });
+
+            // Active view show
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+
+            // Active Tab Highlight
+            const activeDesktopNav = document.getElementById(`nav-${tabName}`);
+            const activeMobileNav = document.getElementById(`mobile-nav-${tabName}`);
+
+            if (activeDesktopNav) {
+                activeDesktopNav.classList.add('bg-white', 'dark:bg-slate-800', 'text-brand-600', 'shadow-sm', 'font-bold');
+            }
+            if (activeMobileNav) {
+                activeMobileNav.classList.add('text-brand-600', 'font-bold');
+            }
+
+            renderAllViews();
+        };
+
+        // Dark Mode Logic
+        window.toggleDarkMode = function() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('labstock_theme', isDark ? 'dark' : 'light');
+        };
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('labstock_theme');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        // RENDER ALL VIEWS
+        function renderAllViews() {
+            renderDashboard();
+            renderInventory();
+            renderHistory();
+        }
+
+        function renderDashboard() {
+            const items = window.state.equipment;
+            const loans = window.state.loans;
+
+            const total = items.length;
+            const borrowed = items.filter(i => i.status === 'BORROWED').length;
+            const available = items.filter(i => i.status === 'AVAILABLE').length;
+
+            // Calculate Overdue Items
+            const today = new Date().toISOString().split('T')[0];
+            const overdueLoans = loans.filter(l => l.status === 'BORROWED' && l.dueDate < today);
+
+            // Stat Cards update
+            document.getElementById('stat-total-items').innerText = total;
+            document.getElementById('stat-borrowed-items').innerText = borrowed;
+            document.getElementById('stat-available-items').innerText = available;
+            document.getElementById('stat-overdue-items').innerText = overdueLoans.length;
+
+            const borrowRate = total > 0 ? Math.round((borrowed / total) * 100) : 0;
+            document.getElementById('stat-borrow-rate').innerText = `利用率 ${borrowRate}%`;
+
+            // Overdue Alerts List
+            const overdueContainer = document.getElementById('overdue-items-list');
+            document.getElementById('overdue-badge-count').innerText = `${overdueLoans.length}件`;
+
+            if (overdueLoans.length === 0) {
+                overdueContainer.innerHTML = `
+                    <div class="p-6 text-center text-slate-400 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
+                        <i class="fa-solid fa-circle-check text-emerald-500 text-2xl mb-2"></i>
+                        <p class="text-xs">現在、返却期限切れの備品はありません</p>
+                    </div>
+                `;
+            } else {
+                overdueContainer.innerHTML = overdueLoans.map(loan => `
+                    <div class="p-3.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl flex items-center justify-between gap-3">
+                        <div class="space-y-0.5">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-xs text-rose-800 dark:text-rose-200">${loan.itemName}</span>
+                                <span class="text-[10px] px-2 py-0.5 bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200 font-bold rounded-md">期限超過</span>
+                            </div>
+                            <p class="text-xs text-slate-600 dark:text-slate-300">借用者: <b>${loan.borrowerName}</b> (${loan.borrowerId})</p>
+                            <p class="text-[11px] text-rose-600 dark:text-rose-400 font-medium"><i class="fa-regular fa-clock"></i> 返却予定日: ${loan.dueDate}</p>
+                        </div>
+                        <button onclick="openReturnModal('${loan.itemId}', '${loan.id}')" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition whitespace-nowrap">
+                            返却受け付け
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            // Category Breakdown Chart/Progress Bar
+            const categoryCounts = {};
+            items.forEach(i => {
+                categoryCounts[i.category] = (categoryCounts[i.category] || 0) + 1;
+            });
+
+            const categoryContainer = document.getElementById('category-breakdown-list');
+            if (Object.keys(categoryCounts).length === 0) {
+                categoryContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">データなし</p>`;
+            } else {
+                categoryContainer.innerHTML = Object.entries(categoryCounts).map(([cat, count]) => {
+                    const pct = Math.round((count / total) * 100);
+                    return `
+                        <div>
+                            <div class="flex justify-between text-xs font-medium mb-1">
+                                <span class="text-slate-700 dark:text-slate-300">${cat}</span>
+                                <span class="text-slate-500">${count}個 (${pct}%)</span>
+                            </div>
+                            <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                <div class="bg-brand-600 h-full rounded-full" style="width: ${pct}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Recent Activity Table (Last 5 loans)
+            const recentBody = document.getElementById('recent-activity-table-body');
+            const recentLoans = [...loans].reverse().slice(0, 5);
+
+            if (recentLoans.length === 0) {
+                recentBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-xs text-slate-400">貸出・返却の履歴がありません</td></tr>`;
+            } else {
+                recentBody.innerHTML = recentLoans.map(loan => {
+                    const isReturned = loan.status === 'RETURNED';
+                    return `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+                            <td class="p-3 text-xs text-slate-500">${loan.startDate}</td>
+                            <td class="p-3 font-semibold text-slate-800 dark:text-slate-200">${loan.itemName}</td>
+                            <td class="p-3 text-xs text-slate-600 dark:text-slate-300">${loan.borrowerName} <span class="text-slate-400 text-[10px]">(${loan.borrowerId})</span></td>
+                            <td class="p-3">
+                                ${isReturned 
+                                    ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">返却済み</span>` 
+                                    : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">貸出中</span>`}
+                            </td>
+                            <td class="p-3 text-right text-xs font-medium ${!isReturned && loan.dueDate < today ? 'text-rose-600 font-bold' : 'text-slate-500'}">
+                                ${isReturned ? (loan.returnedDate || '-') : loan.dueDate}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        // RENDER INVENTORY GRID
+        window.applyFilters = function() {
+            renderInventory();
+        };
+
+        function renderInventory() {
+            const searchQuery = document.getElementById('inventory-search-input').value.toLowerCase().trim();
+            const selectedCat = document.getElementById('filter-category').value;
+            const selectedStatus = document.getElementById('filter-status').value;
+
+            let filtered = window.state.equipment.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(searchQuery) || 
+                                      item.code.toLowerCase().includes(searchQuery) || 
+                                      item.location.toLowerCase().includes(searchQuery);
+                const matchesCat = selectedCat === 'ALL' || item.category === selectedCat;
+                const matchesStatus = selectedStatus === 'ALL' || item.status === selectedStatus;
+
+                return matchesSearch && matchesCat && matchesStatus;
+            });
+
+            const grid = document.getElementById('equipment-grid');
+            const emptyState = document.getElementById('empty-inventory-state');
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            // Category Icon Map
+            const categoryIconMap = {
+                "手工具": "fa-wrench",
+                "電子工作工具": "fa-microchip",
+                "測定器": "fa-wave-square",
+                "AV機器": "fa-video",
+                "PC・IT機器": "fa-laptop",
+                "実験器具": "fa-vial",
+                "その他": "fa-box"
+            };
+
+            grid.innerHTML = filtered.map(item => {
+                // Find active loan if borrowed
+                const activeLoan = item.status === 'BORROWED' ? window.state.loans.find(l => l.itemId === item.id && l.status === 'BORROWED') : null;
+
+                // Status Badge Colors
+                let statusBadge = '';
+                if (item.status === 'AVAILABLE') {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 flex items-center gap-1"><i class="fa-solid fa-circle text-[8px]"></i> 貸出可能</span>`;
+                } else if (item.status === 'BORROWED') {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 flex items-center gap-1"><i class="fa-solid fa-clock text-[8px]"></i> 貸出中</span>`;
+                } else {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 flex items-center gap-1"><i class="fa-solid fa-screwdriver-wrench text-[8px]"></i> 点検中</span>`;
+                }
+
+                // Header Image or Placeholder
+                const imageSection = item.image 
+                    ? `<img src="${item.image}" alt="${item.name}" class="w-full h-40 object-cover rounded-t-2xl">`
+                    : `<div class="w-full h-32 bg-slate-100 dark:bg-slate-700/50 rounded-t-2xl flex items-center justify-center text-slate-400 text-4xl">
+                        <i class="fa-solid ${categoryIconMap[item.category] || 'fa-box'}"></i>
+                       </div>`;
+
+                return `
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md transition flex flex-col justify-between overflow-hidden group">
+                        <div>
+                            <!-- Header Graphic -->
+                            <div class="relative">
+                                ${imageSection}
+                                <div class="absolute top-3 right-3">
+                                    ${statusBadge}
+                                </div>
+                                <div class="absolute bottom-2 left-3 bg-slate-900/80 text-white text-[10px] font-mono px-2 py-0.5 rounded-md backdrop-blur-sm">
+                                    ${item.code}
+                                </div>
+                            </div>
+
+                            <!-- Content -->
+                            <div class="p-4 space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-medium px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md">
+                                        ${item.category}
+                                    </span>
+                                </div>
+                                <h4 class="font-bold text-slate-800 dark:text-slate-100 text-sm leading-snug line-clamp-2">${item.name}</h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-location-dot text-brand-600"></i> 保管: ${item.location}
+                                </p>
+
+                                ${activeLoan ? `
+                                    <div class="mt-3 p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200/60 dark:border-amber-900/40 text-xs text-amber-900 dark:text-amber-200 space-y-0.5">
+                                        <p class="font-semibold"><i class="fa-solid fa-user text-amber-600"></i> 借用: ${activeLoan.borrowerName}</p>
+                                        <p class="text-[11px] text-amber-700 dark:text-amber-400">返却予定: ${activeLoan.dueDate}</p>
+                                    </div>
+                                ` : ''}
+
+                                ${item.description ? `<p class="text-xs text-slate-400 line-clamp-2 pt-1 border-t border-slate-100 dark:border-slate-700/50">${item.description}</p>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Action Controls Footer -->
+                        <div class="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
+                            <button onclick="openEditEquipmentModal('${item.id}')" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-semibold rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-700 transition" title="編集">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+
+                            <div class="flex gap-2">
+                                ${item.status === 'AVAILABLE' ? `
+                                    <button onclick="openCheckoutModal('${item.id}')" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1">
+                                        <i class="fa-solid fa-hand-holding"></i> 貸出する
+                                    </button>
+                                ` : ''}
+
+                                ${item.status === 'BORROWED' && activeLoan ? `
+                                    <button onclick="openReturnModal('${item.id}', '${activeLoan.id}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1">
+                                        <i class="fa-solid fa-rotate-left"></i> 返却受け付け
+                                    </button>
+                                ` : ''}
+
+                                ${item.status === 'MAINTENANCE' ? `
+                                    <button onclick="quickRestoreAvailable('${item.id}')" class="px-3 py-1.5 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1">
+                                        <i class="fa-solid fa-check"></i> 点検完了・復旧
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // RENDER HISTORY LOG
+        function renderHistory() {
+            const searchQuery = (document.getElementById('history-search-input')?.value || '').toLowerCase().trim();
+            const loans = window.state.loans;
+
+            let filtered = [...loans].reverse().filter(loan => {
+                return loan.itemName.toLowerCase().includes(searchQuery) ||
+                       loan.borrowerName.toLowerCase().includes(searchQuery) ||
+                       loan.borrowerId.toLowerCase().includes(searchQuery) ||
+                       (loan.notes && loan.notes.toLowerCase().includes(searchQuery));
+            });
+
+            const tbody = document.getElementById('full-history-table-body');
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-xs text-slate-400">該当する貸出・返却ログが存在しません</td></tr>`;
+                return;
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+
+            tbody.innerHTML = filtered.map(loan => {
+                const isReturned = loan.status === 'RETURNED';
+                const isOverdue = !isReturned && loan.dueDate < today;
+
+                let statusBadge = '';
+                if (isReturned) {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">返却完了</span>`;
+                } else if (isOverdue) {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300">返却遅延</span>`;
+                } else {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300">貸出中</span>`;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+                        <td class="p-3.5">${statusBadge}</td>
+                        <td class="p-3.5 font-bold text-slate-800 dark:text-slate-100 text-xs">${loan.itemName}</td>
+                        <td class="p-3.5 text-xs text-slate-700 dark:text-slate-300">
+                            <b>${loan.borrowerName}</b><br>
+                            <span class="text-slate-400 text-[10px]">${loan.borrowerId}</span>
+                        </td>
+                        <td class="p-3.5 text-xs text-slate-600 dark:text-slate-400 max-w-xs truncate">${loan.purpose || '-'}</td>
+                        <td class="p-3.5 text-xs text-slate-500">${loan.startDate}</td>
+                        <td class="p-3.5 text-xs font-semibold ${isOverdue ? 'text-rose-600' : 'text-slate-700 dark:text-slate-300'}">
+                            ${isReturned ? `返却日: ${loan.returnedDate}` : `期限: ${loan.dueDate}`}
+                        </td>
+                        <td class="p-3.5 text-right text-xs text-slate-400 max-w-xs truncate">${loan.notes || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // CSV EXPORT FUNCTION
+        window.exportHistoryCSV = function() {
+            const loans = window.state.loans;
+            if (loans.length === 0) {
+                showToast("出力する履歴データがありません", "info");
+                return;
+            }
+
+            let csvContent = "\uFEFF"; // UTF-8 BOM
+            csvContent += "ステータス,備品名,借用者氏名,所属・学籍番号,利用目的,貸出日,返却予定日,返却完了日,備考\n";
+
+            loans.forEach(loan => {
+                const row = [
+                    loan.status === 'RETURNED' ? '返却済み' : '貸出中',
+                    `"${loan.itemName.replace(/"/g, '""')}"`,
+                    `"${loan.borrowerName.replace(/"/g, '""')}"`,
+                    `"${loan.borrowerId.replace(/"/g, '""')}"`,
+                    `"${(loan.purpose || '').replace(/"/g, '""')}"`,
+                    loan.startDate,
+                    loan.dueDate,
+                    loan.returnedDate || '',
+                    `"${(loan.notes || '').replace(/"/g, '""')}"`
+                ];
+                csvContent += row.join(",") + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `備品貸出履歴_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("CSV履歴ログをダウンロードしました", "success");
+        };
+
+        // MODAL TOGGLE HELPERS
+        window.openModal = function(modalId) {
+            document.getElementById(`modal-${modalId}`).classList.remove('hidden');
+        };
+
+        window.closeModal = function(modalId) {
+            document.getElementById(`modal-${modalId}`).classList.add('hidden');
+        };
+
+        // Equipment Modal Form Functions
+        window.openAddEquipmentModal = function() {
+            document.getElementById('equipment-form').reset();
+            document.getElementById('eq-id').value = '';
+            document.getElementById('equipment-modal-title').innerHTML = `<i class="fa-solid fa-plus text-brand-600"></i> 備品の新規登録`;
+            document.getElementById('eq-delete-btn').classList.add('hidden');
+            openModal('equipment-modal');
+        };
+
+        window.openEditEquipmentModal = function(itemId) {
+            const item = window.state.equipment.find(i => i.id === itemId);
+            if (!item) return;
+
+            document.getElementById('eq-id').value = item.id;
+            document.getElementById('eq-name').value = item.name;
+            document.getElementById('eq-code').value = item.code;
+            document.getElementById('eq-category').value = item.category;
+            document.getElementById('eq-location').value = item.location;
+            document.getElementById('eq-status').value = item.status;
+            document.getElementById('eq-image').value = item.image || '';
+            document.getElementById('eq-description').value = item.description || '';
+
+            document.getElementById('equipment-modal-title').innerHTML = `<i class="fa-solid fa-pen-to-square text-brand-600"></i> 備品情報の編集`;
+            document.getElementById('eq-delete-btn').classList.remove('hidden');
+            openModal('equipment-modal');
+        };
+
+        window.saveEquipment = async function(e) {
+            e.preventDefault();
+            const id = document.getElementById('eq-id').value || `eq-${Date.now()}`;
+            
+            const newItem = {
+                id: id,
+                name: document.getElementById('eq-name').value.trim(),
+                code: document.getElementById('eq-code').value.trim(),
+                category: document.getElementById('eq-category').value,
+                location: document.getElementById('eq-location').value.trim(),
+                status: document.getElementById('eq-status').value,
+                image: document.getElementById('eq-image').value.trim(),
+                description: document.getElementById('eq-description').value.trim()
+            };
+
+            if (window.state.isFirebaseActive && db) {
+                try {
+                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'equipment', id), newItem);
+                } catch (err) {
+                    console.warn("Firestore save failed, saving locally:", err);
+                    saveLocalEquipment(newItem);
+                }
+            } else {
+                saveLocalEquipment(newItem);
+            }
+
+            closeModal('equipment-modal');
+            showToast("備品情報を保存しました", "success");
+        };
+
+        function saveLocalEquipment(newItem) {
+            const idx = window.state.equipment.findIndex(i => i.id === newItem.id);
+            if (idx >= 0) {
+                window.state.equipment[idx] = newItem;
+            } else {
+                window.state.equipment.push(newItem);
+            }
+            saveLocalState();
+            renderAllViews();
+        }
+
+        window.deleteEquipment = async function() {
+            const id = document.getElementById('eq-id').value;
+            if (!id) return;
+
+            if (window.state.isFirebaseActive && db) {
+                try {
+                    await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'equipment', id));
+                } catch (err) {
+                    console.warn("Firestore delete failed, deleting locally:", err);
+                    window.state.equipment = window.state.equipment.filter(i => i.id !== id);
+                    saveLocalState();
+                    renderAllViews();
+                }
+            } else {
+                window.state.equipment = window.state.equipment.filter(i => i.id !== id);
+                saveLocalState();
+                renderAllViews();
+            }
+
+            closeModal('equipment-modal');
+            showToast("備品を削除しました", "info");
+        };
+
+        // CHECKOUT / BORROW FLOW HANDLERS
+        window.openCheckoutModal = function(itemId) {
+            const item = window.state.equipment.find(i => i.id === itemId);
+            if (!item) return;
+
+            document.getElementById('checkout-item-id').value = item.id;
+            document.getElementById('checkout-item-name').innerText = item.name;
+            document.getElementById('checkout-item-code').innerText = `管理ID: ${item.code} | 保管: ${item.location}`;
+
+            // Auto-fill user if logged in
+            if (window.state.currentUser) {
+                document.getElementById('checkout-user-name').value = window.state.currentUser.name;
+            }
+
+            // Set default date range (Default 7 days return)
+            const today = new Date();
+            const dueDate = new Date(Date.now() + 7 * 86400000);
+
+            document.getElementById('checkout-start-date').value = today.toISOString().split('T')[0];
+            document.getElementById('checkout-due-date').value = dueDate.toISOString().split('T')[0];
+
+            openModal('checkout-modal');
+        };
+
+        window.processCheckout = async function(e) {
+            e.preventDefault();
+            const itemId = document.getElementById('checkout-item-id').value;
+            const item = window.state.equipment.find(i => i.id === itemId);
+            if (!item) return;
+
+            const loanId = `loan-${Date.now()}`;
+            const loanData = {
+                id: loanId,
+                itemId: item.id,
+                itemName: item.name,
+                borrowerName: document.getElementById('checkout-user-name').value.trim(),
+                borrowerId: document.getElementById('checkout-user-id').value.trim(),
+                purpose: document.getElementById('checkout-purpose').value.trim(),
+                startDate: document.getElementById('checkout-start-date').value,
+                dueDate: document.getElementById('checkout-due-date').value,
+                returnedDate: null,
+                status: "BORROWED",
+                notes: ""
+            };
+
+            // Update item status to BORROWED
+            item.status = "BORROWED";
+
+            if (window.state.isFirebaseActive && db) {
+                try {
+                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'loans', loanId), loanData);
+                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'equipment', item.id), item);
+                } catch (err) {
+                    console.warn("Firestore write error, falling back to local storage:", err);
+                    window.state.loans.push(loanData);
+                    saveLocalState();
+                    renderAllViews();
+                }
+            } else {
+                window.state.loans.push(loanData);
+                saveLocalState();
+                renderAllViews();
+            }
+
+            closeModal('checkout-modal');
+            showToast(`${item.name} の貸出を完了しました`, "success");
+        };
+
+        // RETURN FLOW HANDLERS
+        window.openReturnModal = function(itemId, loanId) {
+            const item = window.state.equipment.find(i => i.id === itemId);
+            const loan = window.state.loans.find(l => l.id === loanId);
+
+            if (!item || !loan) return;
+
+            document.getElementById('return-item-id').value = item.id;
+            document.getElementById('return-loan-id').value = loan.id;
+
+            document.getElementById('return-item-name').innerText = item.name;
+            document.getElementById('return-borrower-info').innerText = `借用者: ${loan.borrowerName} (${loan.borrowerId})`;
+            document.getElementById('return-due-info').innerText = `貸出日: ${loan.startDate} | 返却予定日: ${loan.dueDate}`;
+
+            openModal('return-modal');
+        };
+
+        window.processReturn = async function(e) {
+            e.preventDefault();
+            const itemId = document.getElementById('return-item-id').value;
+            const loanId = document.getElementById('return-loan-id').value;
+
+            const item = window.state.equipment.find(i => i.id === itemId);
+            const loan = window.state.loans.find(l => l.id === loanId);
+
+            if (!item || !loan) return;
+
+            const condition = document.getElementById('return-condition').value;
+            const notes = document.getElementById('return-notes').value.trim();
+
+            const today = new Date().toISOString().split('T')[0];
+
+            // Update Loan Object
+            loan.status = "RETURNED";
+            loan.returnedDate = today;
+            loan.notes = notes ? `【返却メモ】${notes}` : '';
+
+            // Update Equipment Status based on condition
+            if (condition === 'DAMAGED') {
+                item.status = "MAINTENANCE";
+            } else {
+                item.status = "AVAILABLE";
+            }
+
+            if (window.state.isFirebaseActive && db) {
+                try {
+                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'loans', loan.id), loan);
+                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'equipment', item.id), item);
+                } catch (err) {
+                    console.warn("Firestore update error, falling back to local storage:", err);
+                    saveLocalState();
+                    renderAllViews();
+                }
+            } else {
+                saveLocalState();
+                renderAllViews();
+            }
+
+            closeModal('return-modal');
+            showToast(`${item.name} の返却を受け付けました`, "success");
+        };
+
+        window.quickRestoreAvailable = async function(itemId) {
+            const item = window.state.equipment.find(i => i.id === itemId);
+            if (!item) return;
+
+            item.status = 'AVAILABLE';
+            if (window.state.isFirebaseActive && db) {
+                try {
+                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'equipment', item.id), item);
+                } catch (err) {
+                    saveLocalState();
+                    renderAllViews();
+                }
+            } else {
+                saveLocalState();
+                renderAllViews();
+            }
+            showToast("ステータスを『貸出可能』に変更しました", "success");
+        };
+
+        // Save Custom Firebase Credentials Config
+        window.saveFirebaseConfig = function() {
+            const jsonText = document.getElementById('firebase-config-json').value.trim();
+            if (!jsonText) {
+                showToast("Firebase Config JSONを入力してください", "error");
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(jsonText);
+                if (!parsed.apiKey || !parsed.projectId) {
+                    throw new Error("apiKey または projectId が含まれていません");
+                }
+                localStorage.setItem('labstock_firebase_config', JSON.stringify(parsed));
+                closeModal('firebase-modal');
+                showToast("Firebase設定を保存しました。再読み込みします...", "success");
+                setTimeout(() => location.reload(), 1200);
+            } catch (err) {
+                showToast(`JSON設定フォーマットが無効です: ${err.message}`, "error");
+            }
+        };
+
+        window.resetDemoMode = function() {
+            localStorage.removeItem('labstock_firebase_config');
+            closeModal('firebase-modal');
+            showToast("デモモードに復帰します。再読み込み中...", "info");
+            setTimeout(() => location.reload(), 1000);
+        };
+
+        // TOAST NOTIFICATIONS SYSTEM
+        function showToast(message, type = "info") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+
+            let bg = "bg-slate-800 text-white";
+            let icon = "fa-circle-info";
+
+            if (type === 'success') {
+                bg = "bg-emerald-600 text-white shadow-emerald-500/20";
+                icon = "fa-circle-check";
+            } else if (type === 'error') {
+                bg = "bg-rose-600 text-white shadow-rose-500/20";
+                icon = "fa-circle-exclamation";
+            } else if (type === 'info') {
+                bg = "bg-brand-600 text-white shadow-brand-500/20";
+                icon = "fa-bell";
+            }
+
+            toast.className = `px-4 py-3 rounded-2xl shadow-xl ${bg} flex items-center gap-3 text-xs font-semibold pointer-events-auto transform transition-all duration-300 translate-y-2 opacity-0`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i> <span>${message}</span>`;
+
+            container.appendChild(toast);
+
+            // Animate In
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            // Auto Remove
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
