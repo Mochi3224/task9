@@ -128,12 +128,12 @@
                     <i class="fa-solid fa-triangle-exclamation text-xl"></i>
                 </div>
                 <div>
-                    <h4 class="font-bold text-amber-900 dark:text-amber-200 text-sm">ログインしていません</h4>
-                    <p class="text-xs text-amber-700 dark:text-amber-300">備品の貸出登録を行うにはGoogleアカウントでのログインが必要です。</p>
+                    <h4 class="font-bold text-amber-900 dark:text-amber-200 text-sm">ログインが必要です</h4>
+                    <p class="text-xs text-amber-700 dark:text-amber-300">Googleアカウントでログインすると、備品の貸出・返却操作や利用履歴をアカウント別で記録できます。</p>
                 </div>
             </div>
             <button onclick="loginWithGoogle()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shadow-sm transition whitespace-nowrap flex items-center gap-2">
-                <i class="fa-brands fa-google"></i> 今すぐログイン
+                <i class="fa-brands fa-google"></i> Googleでログイン
             </button>
         </div>
 
@@ -400,7 +400,7 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">画像URL（省略時はカテゴリデフォルトアイコン）</label>
-                    <input type="url" id="eq-image" placeholder="https://example.com/item.jpg" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    <input type="url" id="eq-image" placeholder="https://images.unsplash.com/..." class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
                 </div>
 
                 <div>
@@ -545,7 +545,7 @@
                 <div class="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 p-3.5 rounded-xl text-blue-800 dark:text-blue-300 leading-relaxed space-y-1">
                     <p class="font-bold"><i class="fa-solid fa-circle-info"></i> 設定方法ガイド</p>
                     <p>Firebase Console (https://console.firebase.google.com/) でプロジェクトを作成し、Webアプリを追加して発行された `firebaseConfig` のJSONオブジェクトを貼り付けてください。</p>
-                    <p class="text-[11px] text-blue-600 dark:text-blue-400">※未入力の場合は<b>「デモ・ローカルストレージモード」</b>で動作します。</p>
+                    <p class="text-[11px] text-blue-600 dark:text-blue-400">※未入力の場合は<b>「デモ・ローカルストレージモード」</b>で全機能が快適に動作します。</p>
                 </div>
 
                 <div>
@@ -562,7 +562,7 @@
 
                 <div class="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300">
                     <p class="font-bold mb-1"><i class="fa-solid fa-lock"></i> Firestore 認証・セキュリティルール要件</p>
-                    <p class="text-[11px]">Google認証を有効にし、Firestoreのルールで `/artifacts/{appId}/public/data/equipment` への読み書きを許可してください。</p>
+                    <p class="text-[11px]">Google認証を有効にし、Firestoreルールで書き込みを許可してください。</p>
                 </div>
             </div>
 
@@ -583,14 +583,10 @@
 
     <!-- MAIN ES MODULE SCRIPT -->
     <script type="module">
-        // Firebase Modular SDK Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDocs, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, setDoc, doc, getDocs, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // APP GLOBAL STATE
-        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'school-labstock-app';
-        
         // Initial Demo Sample Equipment Data
         const SAMPLE_EQUIPMENT = [
             {
@@ -599,7 +595,7 @@
                 name: "ハッコー 温度調節機能付はんだごて FX-888D",
                 category: "電子工作工具",
                 location: "301実習室 作業台A-1",
-                status: "AVAILABLE", // AVAILABLE, BORROWED, MAINTENANCE
+                status: "AVAILABLE",
                 image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&auto=format&fit=crop&q=60",
                 description: "ステーション型はんだごて。温度設定200℃~480℃対応。耐熱マット付属。"
             },
@@ -655,7 +651,7 @@
             }
         ];
 
-        // Initial Demo Sample Loan Records
+        // Sample Dates
         const todayStr = new Date().toISOString().split('T')[0];
         const pastDateStr = new Date(Date.now() - 10 * 86400000).toISOString().split('T')[0];
         const overdueDateStr = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0];
@@ -670,7 +666,7 @@
                 borrowerId: "21T104 (情報工学科)",
                 purpose: "卒業研究でのノイズ波形測定",
                 startDate: pastDateStr,
-                dueDate: overdueDateStr, // Overdue!
+                dueDate: overdueDateStr, // Overdue
                 returnedDate: null,
                 status: "BORROWED",
                 notes: "ケースごと持ち出し"
@@ -690,7 +686,7 @@
             }
         ];
 
-        // System State Structure
+        // System State
         window.state = {
             currentUser: null,
             equipment: [],
@@ -711,7 +707,6 @@
             renderAllViews();
         });
 
-        // Initialize Firebase Credentials (Custom Config or Sandbox Environment)
         function initFirebaseConnection() {
             try {
                 let firebaseConfig = null;
@@ -728,16 +723,15 @@
                     auth = getAuth(app);
                     db = getFirestore(app);
 
-                    // Auth State Observer
+                    // Safe Auth Listener with Null Checks
                     onAuthStateChanged(auth, (user) => {
                         if (user) {
                             const userEmail = user.email || '';
-                            const fallbackName = userEmail ? userEmail.split('@')[0] : 'ゲストユーザー';
+                            const fallbackName = userEmail ? userEmail.split('@')[0] : (user.displayName || 'ユーザー');
                             window.state.currentUser = {
                                 name: user.displayName || fallbackName,
-                                email: userEmail || 'メールアドレス未登録',
-                                photoURL: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || fallbackName)}&background=0284c7&color=fff`,
-                                isGoogle: !user.isAnonymous
+                                email: userEmail,
+                                photoURL: user.photoURL || null
                             };
                         } else {
                             window.state.currentUser = null;
@@ -745,94 +739,80 @@
                         renderUserAuthUI();
                     });
 
-                    // Sign-in automatically via custom token or anonymous
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        signInWithCustomToken(auth, __initial_auth_token).catch(() => signInAnonymously(auth));
-                    } else {
-                        signInAnonymously(auth).catch(err => console.log("Anon auth notice:", err));
-                    }
-
-                    // Attach Realtime Listeners to Firestore
-                    subscribeFirestoreCollections();
                     window.state.isFirebaseActive = true;
-                    document.getElementById('firebase-status-dot').className = "absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-800";
-                    document.getElementById('firebase-status-dot').title = "Firebase Firestore リアルタイム同期中";
+                    updateFirebaseStatusDot('green', 'Firebaseクラウド同期中');
+                    setupFirestoreListeners();
                 } else {
-                    setupDemoMode();
+                    window.state.isFirebaseActive = false;
+                    updateFirebaseStatusDot('amber', 'デモモード（ローカルストレージ同期）');
                 }
             } catch (err) {
-                console.warn("Firebase Init failed. Falling back to Demo mode.", err);
-                setupDemoMode();
+                console.warn('Firebase initialization fallback to local storage:', err);
+                window.state.isFirebaseActive = false;
+                updateFirebaseStatusDot('amber', 'デモモード（エラー自動回避）');
             }
         }
 
-        function setupDemoMode() {
-            window.state.isFirebaseActive = false;
-            document.getElementById('firebase-status-dot').className = "absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white dark:border-slate-800";
-            document.getElementById('firebase-status-dot').title = "デモモード（ブラウザ保存）";
-            
-            // Demo User Default Setup
-            if (!window.state.currentUser) {
-                window.state.currentUser = {
-                    name: "山田 太郎 (デモ教員)",
-                    email: "yamada.teacher@school.ac.jp",
-                    photoURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
-                    isGoogle: false
-                };
+        function updateFirebaseStatusDot(color, titleText) {
+            const dot = document.getElementById('firebase-status-dot');
+            if (!dot) return;
+            dot.title = titleText;
+            if (color === 'green') {
+                dot.className = 'absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-800';
+            } else {
+                dot.className = 'absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white dark:border-slate-800';
             }
-            renderAllViews();
         }
 
-        // Subscribe to Firestore Collections
-        function subscribeFirestoreCollections() {
+        // Firestore Realtime Subscription (with error boundary)
+        function setupFirestoreListeners() {
             if (!db) return;
-            const eqCol = collection(db, 'artifacts', APP_ID, 'public', 'data', 'equipment');
-            const loanCol = collection(db, 'artifacts', APP_ID, 'public', 'data', 'loans');
+            try {
+                const eqRef = collection(db, 'equipment');
+                onSnapshot(eqRef, (snapshot) => {
+                    if (!snapshot.empty) {
+                        const items = [];
+                        snapshot.forEach(docSnap => items.push({ id: docSnap.id, ...docSnap.data() }));
+                        window.state.equipment = items;
+                        saveLocalState();
+                        renderAllViews();
+                    }
+                }, (err) => {
+                    console.warn("Firestore access error, falling back to local mode:", err);
+                    showToast('Firestore接続制限のためローカル保存モードで動作中', 'info');
+                });
 
-            onSnapshot(eqCol, (snapshot) => {
-                if (!snapshot.empty) {
-                    const items = [];
-                    snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
-                    window.state.equipment = items;
-                    saveLocalState();
-                    renderAllViews();
-                } else {
-                    // Seed initial data to Firestore if empty
-                    SAMPLE_EQUIPMENT.forEach(item => {
-                        setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'equipment', item.id), item).catch(e => console.warn("Seed error:", e));
-                    });
-                }
-            }, err => {
-                console.warn("Firestore Equipment error - Falling back to local storage:", err);
-                setupDemoMode();
-                showToast("Firestoreアクセス制限のため、ローカル保存モードで動作します", "info");
-            });
-
-            onSnapshot(loanCol, (snapshot) => {
-                if (!snapshot.empty) {
-                    const loans = [];
-                    snapshot.forEach(doc => loans.push({ id: doc.id, ...doc.data() }));
-                    window.state.loans = loans;
-                    saveLocalState();
-                    renderAllViews();
-                } else {
-                    SAMPLE_LOANS.forEach(loan => {
-                        setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'loans', loan.id), loan).catch(e => console.warn("Seed error:", e));
-                    });
-                }
-            }, err => {
-                console.warn("Firestore Loans error - Falling back to local storage:", err);
-                setupDemoMode();
-            });
+                const loanRef = collection(db, 'loans');
+                onSnapshot(loanRef, (snapshot) => {
+                    if (!snapshot.empty) {
+                        const loans = [];
+                        snapshot.forEach(docSnap => loans.push({ id: docSnap.id, ...docSnap.data() }));
+                        window.state.loans = loans;
+                        saveLocalState();
+                        renderAllViews();
+                    }
+                });
+            } catch (e) {
+                console.error("Firestore error setup:", e);
+            }
         }
 
-        // Local Storage Backup Operations
+        // Local Storage State Backup
         function loadLocalState() {
-            const eqData = localStorage.getItem('labstock_equipment');
-            const loanData = localStorage.getItem('labstock_loans');
+            const savedEq = localStorage.getItem('labstock_equipment');
+            const savedLoans = localStorage.getItem('labstock_loans');
 
-            window.state.equipment = eqData ? JSON.parse(eqData) : [...SAMPLE_EQUIPMENT];
-            window.state.loans = loanData ? JSON.parse(loanData) : [...SAMPLE_LOANS];
+            if (savedEq) {
+                window.state.equipment = JSON.parse(savedEq);
+            } else {
+                window.state.equipment = SAMPLE_EQUIPMENT;
+            }
+
+            if (savedLoans) {
+                window.state.loans = JSON.parse(savedLoans);
+            } else {
+                window.state.loans = SAMPLE_LOANS;
+            }
         }
 
         function saveLocalState() {
@@ -840,100 +820,609 @@
             localStorage.setItem('labstock_loans', JSON.stringify(window.state.loans));
         }
 
-        // GOOGLE LOGIN HANDLER
         window.loginWithGoogle = async function() {
-            if (auth) {
-                try {
-                    const provider = new GoogleAuthProvider();
-                    await signInWithPopup(auth, provider);
-                    showToast("Googleアカウントでログインしました", "success");
-                } catch (err) {
-                    console.error("Google Auth error:", err);
-                    showToast("Googleログインに失敗しました。Popupプロック解除をご確認ください。", "error");
+            if (!auth) {
+                showToast('Google認証を実行するには、Firebase設定が必要です。右上設定アイコンからConfigを入力してください。', 'error');
+                openModal('firebase-modal');
+                return;
+            }
+
+            try {
+                const provider = new GoogleAuthProvider();
+                // 認証時にアカウント選択プロンプトを表示
+                provider.setCustomParameters({
+                    prompt: 'select_account'
+                });
+                
+                showToast('Googleログイン画面を開いています...', 'info');
+                await signInWithPopup(auth, provider);
+                showToast('Googleアカウントでのログインに成功しました！', 'success');
+            } catch (err) {
+                console.error('Google Auth Error:', err);
+                if (err.code === 'auth/popup-blocked') {
+                    showToast('ポップアップがブロックされました。ブラウザでポップアップを許可してください。', 'error');
+                } else if (err.code === 'auth/popup-closed-by-user') {
+                    showToast('ログイン画面がキャンセルされました。', 'info');
+                } else if (err.code === 'auth/operation-not-allowed') {
+                    showToast('Firebase ConsoleでGoogleログインプロバイダが有効化されていません。', 'error');
+                } else {
+                    showToast('ログインエラー: ' + (err.message || err.code), 'error');
                 }
-            } else {
-                // Demo Mode User Login Switch
-                window.state.currentUser = {
-                    name: "研究室 太郎 (Google連動デモ)",
-                    email: "demo.student@school.ac.jp",
-                    photoURL: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80",
-                    isGoogle: true
-                };
-                renderUserAuthUI();
-                showToast("デモアカウントとしてログインしました", "success");
             }
         };
 
-        window.logout = async function() {
-            if (auth && auth.currentUser && !auth.currentUser.isAnonymous) {
+        window.logoutUser = async function() {
+            if (auth) {
                 await signOut(auth);
             }
             window.state.currentUser = null;
             renderUserAuthUI();
-            showToast("ログアウトしました", "info");
+            showToast('ログアウトしました', 'info');
         };
 
-        // Render Navigation User Auth Component
         function renderUserAuthUI() {
-            const authArea = document.getElementById('user-auth-area');
-            const authWarningBanner = document.getElementById('auth-warning-banner');
+            const container = document.getElementById('user-auth-area');
+            const banner = document.getElementById('auth-warning-banner');
+            if (!container) return;
 
             if (window.state.currentUser) {
-                authWarningBanner.classList.add('hidden');
-                authArea.innerHTML = `
-                    <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-700/60 p-1.5 pl-3 rounded-full border border-slate-200 dark:border-slate-700">
-                        <img src="${window.state.currentUser.photoURL}" alt="avatar" class="w-7 h-7 rounded-full object-cover border border-white dark:border-slate-600">
-                        <div class="hidden lg:block text-left pr-1">
-                            <p class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate max-w-[110px]">${window.state.currentUser.name}</p>
-                            <p class="text-[10px] text-slate-400 truncate max-w-[110px]">${window.state.currentUser.email}</p>
+                const user = window.state.currentUser;
+                const avatar = user.photoURL 
+                    ? `<img src="${user.photoURL}" class="w-8 h-8 rounded-full border border-slate-200 object-cover">`
+                    : `<div class="w-8 h-8 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center text-xs">${(user.name || 'U').charAt(0)}</div>`;
+
+                container.innerHTML = `
+                    <div class="flex items-center space-x-2 pl-2 border-l border-slate-200 dark:border-slate-700">
+                        ${avatar}
+                        <div class="hidden sm:block text-left">
+                            <p class="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight">${user.name}</p>
+                            <p class="text-[10px] text-slate-400 leading-none">${user.email || 'Googleユーザー'}</p>
                         </div>
-                        <button onclick="logout()" class="p-1.5 text-slate-400 hover:text-rose-500 rounded-full transition" title="ログアウト">
-                            <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                        <button onclick="logoutUser()" class="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg transition" title="ログアウト">
+                            <i class="fa-solid fa-right-from-bracket text-sm"></i>
                         </button>
                     </div>
                 `;
+                if (banner) banner.classList.add('hidden');
             } else {
-                authWarningBanner.classList.remove('hidden');
-                authArea.innerHTML = `
-                    <button onclick="loginWithGoogle()" class="px-3.5 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl text-xs font-bold hover:bg-slate-800 dark:hover:bg-white shadow-sm transition flex items-center gap-2">
-                        <i class="fa-brands fa-google text-amber-400"></i> Googleログイン
+                container.innerHTML = `
+                    <button onclick="loginWithGoogle()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-brands fa-google text-sm"></i>
+                        <span>Google ログイン</span>
                     </button>
                 `;
+                if (banner) banner.classList.remove('hidden');
             }
         }
 
-        // UI Navigation Tab Switcher
-        window.switchTab = function(tabName) {
-            window.state.activeTab = tabName;
+        function renderAllViews() {
+            renderDashboard();
+            renderInventory();
+            renderHistory();
+        }
 
-            // Hide all views
-            document.getElementById('view-dashboard').classList.add('hidden');
-            document.getElementById('view-inventory').classList.add('hidden');
-            document.getElementById('view-history').classList.add('hidden');
+        function renderDashboard() {
+            const eq = window.state.equipment;
+            const loans = window.state.loans;
 
-            // Reset tab styling
-            document.querySelectorAll('.nav-tab, .mobile-nav-tab').forEach(el => {
-                el.classList.remove('bg-white', 'dark:bg-slate-800', 'text-brand-600', 'shadow-sm', 'font-bold');
+            const total = eq.length;
+            const borrowedCount = eq.filter(i => i.status === 'BORROWED').length;
+            const availableCount = eq.filter(i => i.status === 'AVAILABLE').length;
+
+            const today = new Date().toISOString().split('T')[0];
+            const activeLoans = loans.filter(l => l.status === 'BORROWED');
+            const overdueLoans = activeLoans.filter(l => l.dueDate < today);
+
+            // Update Header Stats
+            document.getElementById('stat-total-items').textContent = total;
+            document.getElementById('stat-borrowed-items').textContent = borrowedCount;
+            document.getElementById('stat-available-items').textContent = availableCount;
+            document.getElementById('stat-overdue-items').textContent = overdueLoans.length;
+
+            const rate = total > 0 ? Math.round((borrowedCount / total) * 100) : 0;
+            document.getElementById('stat-borrow-rate').textContent = `利用率 ${rate}%`;
+
+            // Overdue Alert List
+            const overdueContainer = document.getElementById('overdue-items-list');
+            const overdueBadge = document.getElementById('overdue-badge-count');
+            overdueBadge.textContent = `${overdueLoans.length}件`;
+
+            if (overdueLoans.length === 0) {
+                overdueContainer.innerHTML = `
+                    <div class="text-center py-6 text-slate-400 text-xs">
+                        <i class="fa-solid fa-circle-check text-emerald-500 text-2xl mb-2 block"></i>
+                        返却期限が過ぎている備品はありません。正常です。
+                    </div>
+                `;
+            } else {
+                overdueContainer.innerHTML = overdueLoans.map(loan => {
+                    const diffDays = Math.ceil((new Date(today) - new Date(loan.dueDate)) / (1000 * 60 * 60 * 24));
+                    return `
+                        <div class="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 rounded-xl flex items-center justify-between gap-3">
+                            <div class="space-y-0.5">
+                                <h4 class="font-bold text-xs text-rose-950 dark:text-rose-200">${escapeHtml(loan.itemName)}</h4>
+                                <p class="text-[11px] text-rose-700 dark:text-rose-400">
+                                    借用者: <b>${escapeHtml(loan.borrowerName)}</b> (${escapeHtml(loan.borrowerId)})
+                                </p>
+                                <p class="text-[10px] text-rose-600 dark:text-rose-400">
+                                    期限: ${loan.dueDate} (<b>${diffDays}日超過</b>)
+                                </p>
+                            </div>
+                            <button onclick="openReturnModal('${loan.itemId}')" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition whitespace-nowrap">
+                                即時返却処理
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Category Breakdown Chart
+            const catMap = {};
+            eq.forEach(item => {
+                catMap[item.category] = (catMap[item.category] || 0) + 1;
             });
+            const catContainer = document.getElementById('category-breakdown-list');
+            catContainer.innerHTML = Object.entries(catMap).map(([cat, count]) => {
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                return `
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="font-semibold text-slate-700 dark:text-slate-300">${cat}</span>
+                            <span class="text-slate-500">${count}個 (${pct}%)</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-brand-500 rounded-full" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
 
-            // Active view show
-            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            // Recent Activity Table
+            const recentBody = document.getElementById('recent-activity-table-body');
+            const sortedLoans = [...loans].reverse().slice(0, 5);
+            if (sortedLoans.length === 0) {
+                recentBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-xs text-slate-400">履歴がありません</td></tr>`;
+            } else {
+                recentBody.innerHTML = sortedLoans.map(loan => {
+                    const isReturned = loan.status === 'RETURNED';
+                    const badge = isReturned 
+                        ? `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 text-[10px] font-bold">返却済</span>`
+                        : `<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 text-[10px] font-bold">貸出中</span>`;
 
-            // Active Tab Highlight
-            const activeDesktopNav = document.getElementById(`nav-${tabName}`);
-            const activeMobileNav = document.getElementById(`mobile-nav-${tabName}`);
-
-            if (activeDesktopNav) {
-                activeDesktopNav.classList.add('bg-white', 'dark:bg-slate-800', 'text-brand-600', 'shadow-sm', 'font-bold');
+                    return `
+                        <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition">
+                            <td class="p-3 text-xs text-slate-500">${loan.startDate}</td>
+                            <td class="p-3 font-semibold text-xs text-slate-800 dark:text-slate-200">${escapeHtml(loan.itemName)}</td>
+                            <td class="p-3 text-xs text-slate-600 dark:text-slate-400">${escapeHtml(loan.borrowerName)} <span class="text-[10px] text-slate-400">(${escapeHtml(loan.borrowerId)})</span></td>
+                            <td class="p-3">${badge}</td>
+                            <td class="p-3 text-right text-xs font-mono">${loan.dueDate}</td>
+                        </tr>
+                    `;
+                }).join('');
             }
-            if (activeMobileNav) {
-                activeMobileNav.classList.add('text-brand-600', 'font-bold');
-            }
+        }
 
-            renderAllViews();
+        window.applyFilters = function() {
+            renderInventory();
         };
 
-        // Dark Mode Logic
+        function renderInventory() {
+            const grid = document.getElementById('equipment-grid');
+            const emptyState = document.getElementById('empty-inventory-state');
+            const query = (document.getElementById('inventory-search-input')?.value || '').toLowerCase().trim();
+            const catFilter = document.getElementById('filter-category')?.value || 'ALL';
+            const statusFilter = document.getElementById('filter-status')?.value || 'ALL';
+
+            let filtered = window.state.equipment.filter(item => {
+                const matchQuery = item.name.toLowerCase().includes(query) || 
+                                   item.code.toLowerCase().includes(query) || 
+                                   item.location.toLowerCase().includes(query);
+                const matchCat = catFilter === 'ALL' || item.category === catFilter;
+                const matchStatus = statusFilter === 'ALL' || item.status === statusFilter;
+                return matchQuery && matchCat && matchStatus;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            grid.innerHTML = filtered.map(item => {
+                let statusBadge = '';
+                let actionButton = '';
+
+                if (item.status === 'AVAILABLE') {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-200 dark:border-emerald-800">貸出可</span>`;
+                    actionButton = `<button onclick="openCheckoutModal('${item.id}')" class="w-full py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-hand-holding"></i> 貸出する</button>`;
+                } else if (item.status === 'BORROWED') {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 text-xs font-bold border border-amber-200 dark:border-amber-800">貸出中</span>`;
+                    actionButton = `<button onclick="openReturnModal('${item.id}')" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5"><i class="fa-solid fa-rotate-left"></i> 返却手続き</button>`;
+                } else {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 text-xs font-bold">点検中</span>`;
+                    actionButton = `<button disabled class="w-full py-2 bg-slate-200 dark:bg-slate-700 text-slate-400 rounded-xl text-xs font-bold cursor-not-allowed">利用不可</button>`;
+                }
+
+                const imgPlaceholder = item.image 
+                    ? `<img src="${item.image}" class="w-full h-36 object-cover rounded-xl" onerror="this.src='https://placehold.co/400x300/e2e8f0/64748b?text=LabStock'">`
+                    : `<div class="w-full h-36 bg-slate-100 dark:bg-slate-700/60 rounded-xl flex items-center justify-center text-slate-400 text-3xl"><i class="fa-solid fa-toolbox"></i></div>`;
+
+                return `
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                        <div>
+                            <div class="relative mb-3">
+                                ${imgPlaceholder}
+                                <div class="absolute top-2 right-2">
+                                    ${statusBadge}
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono mb-1">
+                                <span>${escapeHtml(item.code)}</span>
+                                <span class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded">${escapeHtml(item.category)}</span>
+                            </div>
+                            <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-2 mb-1.5">${escapeHtml(item.name)}</h4>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-3">
+                                <i class="fa-solid fa-location-dot text-brand-600"></i> ${escapeHtml(item.location)}
+                            </p>
+                        </div>
+                        <div class="pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-2">
+                            <button onclick="openEditEquipmentModal('${item.id}')" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-700/50 rounded-xl" title="編集">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            ${actionButton}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderHistory() {
+            const tableBody = document.getElementById('full-history-table-body');
+            const query = (document.getElementById('history-search-input')?.value || '').toLowerCase().trim();
+
+            let logs = window.state.loans.filter(l => {
+                return l.itemName.toLowerCase().includes(query) ||
+                       l.borrowerName.toLowerCase().includes(query) ||
+                       l.borrowerId.toLowerCase().includes(query);
+            });
+
+            if (logs.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-xs text-slate-400">該当する貸出・返却ログが存在しません。</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = logs.reverse().map(log => {
+                const isReturned = log.status === 'RETURNED';
+                const statusTag = isReturned 
+                    ? `<span class="px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 text-xs font-bold">返却完了</span>`
+                    : `<span class="px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 text-xs font-bold">貸出中</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition text-xs">
+                        <td class="p-3.5">${statusTag}</td>
+                        <td class="p-3.5 font-bold text-slate-800 dark:text-slate-100">${escapeHtml(log.itemName)}</td>
+                        <td class="p-3.5">${escapeHtml(log.borrowerName)} <span class="text-slate-400 block text-[10px]">${escapeHtml(log.borrowerId)}</span></td>
+                        <td class="p-3.5 text-slate-600 dark:text-slate-300 max-w-xs truncate">${escapeHtml(log.purpose || '-')}</td>
+                        <td class="p-3.5 font-mono text-slate-500">${log.startDate}</td>
+                        <td class="p-3.5 font-mono text-slate-500">${isReturned ? (log.returnedDate || '-') : log.dueDate}</td>
+                        <td class="p-3.5 text-right text-slate-500 italic max-w-xs truncate">${escapeHtml(log.notes || '-')}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.exportHistoryCSV = function() {
+            const loans = window.state.loans;
+            if (loans.length === 0) {
+                showToast('出力するデータがありません', 'error');
+                return;
+            }
+
+            let csvContent = "\uFEFFステータス,備品名,借用者氏名,学籍番号/所属,利用目的,貸出開始日,返却予定日,返却完了日,備考\n";
+            loans.forEach(l => {
+                const row = [
+                    l.status,
+                    `"${l.itemName.replace(/"/g, '""')}"`,
+                    `"${l.borrowerName.replace(/"/g, '""')}"`,
+                    `"${l.borrowerId.replace(/"/g, '""')}"`,
+                    `"${(l.purpose || '').replace(/"/g, '""')}"`,
+                    l.startDate,
+                    l.dueDate,
+                    l.returnedDate || '',
+                    `"${(l.notes || '').replace(/"/g, '""')}"`
+                ];
+                csvContent += row.join(",") + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `LabStock_Loan_History_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('CSVのダウンロードを開始しました', 'success');
+        };
+
+        window.openAddEquipmentModal = function() {
+            document.getElementById('equipment-modal-title').innerHTML = '<i class="fa-solid fa-plus text-brand-600"></i> 備品の新規登録';
+            document.getElementById('eq-id').value = '';
+            document.getElementById('eq-form').reset();
+            document.getElementById('eq-delete-btn').classList.add('hidden');
+            openModal('equipment-modal');
+        };
+
+        window.openEditEquipmentModal = function(id) {
+            const item = window.state.equipment.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('equipment-modal-title').innerHTML = '<i class="fa-solid fa-pen-to-square text-brand-600"></i> 備品情報の編集';
+            document.getElementById('eq-id').value = item.id;
+            document.getElementById('eq-name').value = item.name;
+            document.getElementById('eq-code').value = item.code;
+            document.getElementById('eq-category').value = item.category;
+            document.getElementById('eq-location').value = item.location;
+            document.getElementById('eq-status').value = item.status === 'BORROWED' ? 'AVAILABLE' : item.status;
+            document.getElementById('eq-image').value = item.image || '';
+            document.getElementById('eq-description').value = item.description || '';
+
+            document.getElementById('eq-delete-btn').classList.remove('hidden');
+            openModal('equipment-modal');
+        };
+
+        window.saveEquipment = async function(event) {
+            event.preventDefault();
+            const id = document.getElementById('eq-id').value || `eq-${Date.now()}`;
+            const eqData = {
+                id: id,
+                name: document.getElementById('eq-name').value.trim(),
+                code: document.getElementById('eq-code').value.trim(),
+                category: document.getElementById('eq-category').value,
+                location: document.getElementById('eq-location').value.trim(),
+                status: document.getElementById('eq-status').value,
+                image: document.getElementById('eq-image').value.trim(),
+                description: document.getElementById('eq-description').value.trim()
+            };
+
+            // Local state update
+            const idx = window.state.equipment.findIndex(i => i.id === id);
+            if (idx >= 0) {
+                window.state.equipment[idx] = { ...window.state.equipment[idx], ...eqData };
+            } else {
+                window.state.equipment.push(eqData);
+            }
+            saveLocalState();
+
+            // Firestore Sync (if active)
+            if (db) {
+                try {
+                    await setDoc(doc(db, 'equipment', id), eqData);
+                } catch (e) {
+                    console.warn("Firestore sync skipped:", e);
+                }
+            }
+
+            closeModal('equipment-modal');
+            renderAllViews();
+            showToast('備品情報を保存しました', 'success');
+        };
+
+        window.deleteEquipment = async function() {
+            const id = document.getElementById('eq-id').value;
+            if (!id) return;
+
+            window.state.equipment = window.state.equipment.filter(i => i.id !== id);
+            saveLocalState();
+
+            if (db) {
+                try {
+                    await deleteDoc(doc(db, 'equipment', id));
+                } catch (e) {}
+            }
+
+            closeModal('equipment-modal');
+            renderAllViews();
+            showToast('備品を削除しました', 'info');
+        };
+
+        window.openCheckoutModal = function(itemId) {
+            const item = window.state.equipment.find(i => i.id === itemId);
+            if (!item) return;
+
+            document.getElementById('checkout-item-id').value = item.id;
+            document.getElementById('checkout-item-name').textContent = item.name;
+            document.getElementById('checkout-item-code').textContent = `ID: ${item.code} / 保管: ${item.location}`;
+
+            // Pre-fill user details if logged in
+            if (window.state.currentUser) {
+                document.getElementById('checkout-user-name').value = window.state.currentUser.name;
+            } else {
+                document.getElementById('checkout-user-name').value = '';
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            const defaultDue = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+            document.getElementById('checkout-start-date').value = today;
+            document.getElementById('checkout-due-date').value = defaultDue;
+            document.getElementById('checkout-purpose').value = '';
+
+            openModal('checkout-modal');
+        };
+
+        window.processCheckout = async function(event) {
+            event.preventDefault();
+            const itemId = document.getElementById('checkout-item-id').value;
+            const item = window.state.equipment.find(i => i.id === itemId);
+            if (!item) return;
+
+            const loanId = `loan-${Date.now()}`;
+            const loanData = {
+                id: loanId,
+                itemId: item.id,
+                itemName: item.name,
+                borrowerName: document.getElementById('checkout-user-name').value.trim(),
+                borrowerId: document.getElementById('checkout-user-id').value.trim(),
+                startDate: document.getElementById('checkout-start-date').value,
+                dueDate: document.getElementById('checkout-due-date').value,
+                purpose: document.getElementById('checkout-purpose').value.trim(),
+                returnedDate: null,
+                status: 'BORROWED',
+                notes: ''
+            };
+
+            // Update item status
+            item.status = 'BORROWED';
+            window.state.loans.push(loanData);
+            saveLocalState();
+
+            if (db) {
+                try {
+                    await setDoc(doc(db, 'equipment', item.id), item);
+                    await setDoc(doc(db, 'loans', loanId), loanData);
+                } catch (e) {}
+            }
+
+            closeModal('checkout-modal');
+            renderAllViews();
+            showToast(`${item.name} の貸出を完了しました`, 'success');
+        };
+
+        window.openReturnModal = function(itemId) {
+            const item = window.state.equipment.find(i => i.id === itemId);
+            const loan = window.state.loans.find(l => l.itemId === itemId && l.status === 'BORROWED');
+            if (!item || !loan) return;
+
+            document.getElementById('return-item-id').value = item.id;
+            document.getElementById('return-loan-id').value = loan.id;
+            document.getElementById('return-item-name').textContent = item.name;
+            document.getElementById('return-borrower-info').textContent = `借用者: ${loan.borrowerName} (${loan.borrowerId})`;
+            document.getElementById('return-due-info').textContent = `返却予定日: ${loan.dueDate}`;
+            document.getElementById('return-notes').value = '';
+
+            openModal('return-modal');
+        };
+
+        window.processReturn = async function(event) {
+            event.preventDefault();
+            const itemId = document.getElementById('return-item-id').value;
+            const loanId = document.getElementById('return-loan-id').value;
+            const condition = document.getElementById('return-condition').value;
+            const notes = document.getElementById('return-notes').value.trim();
+
+            const item = window.state.equipment.find(i => i.id === itemId);
+            const loan = window.state.loans.find(l => l.id === loanId);
+
+            if (item && loan) {
+                const today = new Date().toISOString().split('T')[0];
+                loan.status = 'RETURNED';
+                loan.returnedDate = today;
+                loan.notes = notes ? `[${condition}] ${notes}` : `[${condition}]`;
+
+                if (condition === 'DAMAGED') {
+                    item.status = 'MAINTENANCE';
+                } else {
+                    item.status = 'AVAILABLE';
+                }
+
+                saveLocalState();
+
+                if (db) {
+                    try {
+                        await setDoc(doc(db, 'equipment', item.id), item);
+                        await setDoc(doc(db, 'loans', loan.id), loan);
+                    } catch (e) {}
+                }
+
+                closeModal('return-modal');
+                renderAllViews();
+                showToast(`${item.name} の返却を受け付けました`, 'success');
+            }
+        };
+
+        window.saveFirebaseConfig = function() {
+            const jsonText = document.getElementById('firebase-config-json').value.trim();
+            if (!jsonText) {
+                localStorage.removeItem('labstock_firebase_config');
+                location.reload();
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(jsonText);
+                if (!parsed.apiKey || !parsed.projectId) {
+                    throw new Error("apiKeyおよびprojectIdが必要です");
+                }
+                localStorage.setItem('labstock_firebase_config', JSON.stringify(parsed));
+                showToast('Firebase設定を保存しました。再読み込みします...', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } catch (err) {
+                alert('JSONの形式が無効です: ' + err.message);
+            }
+        };
+
+        window.resetDemoMode = function() {
+            localStorage.removeItem('labstock_firebase_config');
+            location.reload();
+        };
+
+        // Navigation Tabs UI Switcher
+        window.switchTab = function(tabName) {
+            window.state.activeTab = tabName;
+            ['dashboard', 'inventory', 'history'].forEach(t => {
+                const view = document.getElementById(`view-${t}`);
+                const navBtn = document.getElementById(`nav-${t}`);
+                const mobBtn = document.getElementById(`mobile-nav-${t}`);
+
+                if (t === tabName) {
+                    view.classList.remove('hidden');
+                    if (navBtn) navBtn.className = 'nav-tab bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 font-bold shadow-sm px-4 py-2 rounded-lg text-sm transition-all flex items-center gap-2';
+                    if (mobBtn) mobBtn.className = 'mobile-nav-tab flex-1 py-1 text-center text-xs text-brand-600 dark:text-brand-400 font-bold';
+                } else {
+                    view.classList.add('hidden');
+                    if (navBtn) navBtn.className = 'nav-tab text-slate-600 dark:text-slate-300 hover:text-slate-900 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2';
+                    if (mobBtn) mobBtn.className = 'mobile-nav-tab flex-1 py-1 text-center text-xs text-slate-600 dark:text-slate-400 font-medium';
+                }
+            });
+        };
+
+        // Modal Helpers
+        window.openModal = function(id) {
+            const el = document.getElementById(`modal-${id.replace('-modal', '')}`);
+            if (el) el.classList.remove('hidden');
+        };
+
+        window.closeModal = function(id) {
+            const el = document.getElementById(`modal-${id.replace('-modal', '')}`);
+            if (el) el.classList.add('hidden');
+        };
+
+        // Toast Notification System
+        window.showToast = function(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            let bg = 'bg-slate-800 text-white';
+            if (type === 'success') bg = 'bg-emerald-600 text-white';
+            if (type === 'error') bg = 'bg-rose-600 text-white';
+
+            toast.className = `${bg} px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> ${escapeHtml(message)}`;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        };
+
+        // Dark Mode Toggle
         window.toggleDarkMode = function() {
             document.documentElement.classList.toggle('dark');
             const isDark = document.documentElement.classList.contains('dark');
@@ -949,649 +1438,13 @@
             }
         }
 
-        // RENDER ALL VIEWS
-        function renderAllViews() {
-            renderDashboard();
-            renderInventory();
-            renderHistory();
-        }
-
-        function renderDashboard() {
-            const items = window.state.equipment;
-            const loans = window.state.loans;
-
-            const total = items.length;
-            const borrowed = items.filter(i => i.status === 'BORROWED').length;
-            const available = items.filter(i => i.status === 'AVAILABLE').length;
-
-            // Calculate Overdue Items
-            const today = new Date().toISOString().split('T')[0];
-            const overdueLoans = loans.filter(l => l.status === 'BORROWED' && l.dueDate < today);
-
-            // Stat Cards update
-            document.getElementById('stat-total-items').innerText = total;
-            document.getElementById('stat-borrowed-items').innerText = borrowed;
-            document.getElementById('stat-available-items').innerText = available;
-            document.getElementById('stat-overdue-items').innerText = overdueLoans.length;
-
-            const borrowRate = total > 0 ? Math.round((borrowed / total) * 100) : 0;
-            document.getElementById('stat-borrow-rate').innerText = `利用率 ${borrowRate}%`;
-
-            // Overdue Alerts List
-            const overdueContainer = document.getElementById('overdue-items-list');
-            document.getElementById('overdue-badge-count').innerText = `${overdueLoans.length}件`;
-
-            if (overdueLoans.length === 0) {
-                overdueContainer.innerHTML = `
-                    <div class="p-6 text-center text-slate-400 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-                        <i class="fa-solid fa-circle-check text-emerald-500 text-2xl mb-2"></i>
-                        <p class="text-xs">現在、返却期限切れの備品はありません</p>
-                    </div>
-                `;
-            } else {
-                overdueContainer.innerHTML = overdueLoans.map(loan => `
-                    <div class="p-3.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl flex items-center justify-between gap-3">
-                        <div class="space-y-0.5">
-                            <div class="flex items-center gap-2">
-                                <span class="font-bold text-xs text-rose-800 dark:text-rose-200">${loan.itemName}</span>
-                                <span class="text-[10px] px-2 py-0.5 bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200 font-bold rounded-md">期限超過</span>
-                            </div>
-                            <p class="text-xs text-slate-600 dark:text-slate-300">借用者: <b>${loan.borrowerName}</b> (${loan.borrowerId})</p>
-                            <p class="text-[11px] text-rose-600 dark:text-rose-400 font-medium"><i class="fa-regular fa-clock"></i> 返却予定日: ${loan.dueDate}</p>
-                        </div>
-                        <button onclick="openReturnModal('${loan.itemId}', '${loan.id}')" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition whitespace-nowrap">
-                            返却受け付け
-                        </button>
-                    </div>
-                `).join('');
-            }
-
-            // Category Breakdown Chart/Progress Bar
-            const categoryCounts = {};
-            items.forEach(i => {
-                categoryCounts[i.category] = (categoryCounts[i.category] || 0) + 1;
-            });
-
-            const categoryContainer = document.getElementById('category-breakdown-list');
-            if (Object.keys(categoryCounts).length === 0) {
-                categoryContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">データなし</p>`;
-            } else {
-                categoryContainer.innerHTML = Object.entries(categoryCounts).map(([cat, count]) => {
-                    const pct = Math.round((count / total) * 100);
-                    return `
-                        <div>
-                            <div class="flex justify-between text-xs font-medium mb-1">
-                                <span class="text-slate-700 dark:text-slate-300">${cat}</span>
-                                <span class="text-slate-500">${count}個 (${pct}%)</span>
-                            </div>
-                            <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                                <div class="bg-brand-600 h-full rounded-full" style="width: ${pct}%"></div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            // Recent Activity Table (Last 5 loans)
-            const recentBody = document.getElementById('recent-activity-table-body');
-            const recentLoans = [...loans].reverse().slice(0, 5);
-
-            if (recentLoans.length === 0) {
-                recentBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-xs text-slate-400">貸出・返却の履歴がありません</td></tr>`;
-            } else {
-                recentBody.innerHTML = recentLoans.map(loan => {
-                    const isReturned = loan.status === 'RETURNED';
-                    return `
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
-                            <td class="p-3 text-xs text-slate-500">${loan.startDate}</td>
-                            <td class="p-3 font-semibold text-slate-800 dark:text-slate-200">${loan.itemName}</td>
-                            <td class="p-3 text-xs text-slate-600 dark:text-slate-300">${loan.borrowerName} <span class="text-slate-400 text-[10px]">(${loan.borrowerId})</span></td>
-                            <td class="p-3">
-                                ${isReturned 
-                                    ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">返却済み</span>` 
-                                    : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">貸出中</span>`}
-                            </td>
-                            <td class="p-3 text-right text-xs font-medium ${!isReturned && loan.dueDate < today ? 'text-rose-600 font-bold' : 'text-slate-500'}">
-                                ${isReturned ? (loan.returnedDate || '-') : loan.dueDate}
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            }
-        }
-
-        // RENDER INVENTORY GRID
-        window.applyFilters = function() {
-            renderInventory();
-        };
-
-        function renderInventory() {
-            const searchQuery = document.getElementById('inventory-search-input').value.toLowerCase().trim();
-            const selectedCat = document.getElementById('filter-category').value;
-            const selectedStatus = document.getElementById('filter-status').value;
-
-            let filtered = window.state.equipment.filter(item => {
-                const matchesSearch = item.name.toLowerCase().includes(searchQuery) || 
-                                      item.code.toLowerCase().includes(searchQuery) || 
-                                      item.location.toLowerCase().includes(searchQuery);
-                const matchesCat = selectedCat === 'ALL' || item.category === selectedCat;
-                const matchesStatus = selectedStatus === 'ALL' || item.status === selectedStatus;
-
-                return matchesSearch && matchesCat && matchesStatus;
-            });
-
-            const grid = document.getElementById('equipment-grid');
-            const emptyState = document.getElementById('empty-inventory-state');
-
-            if (filtered.length === 0) {
-                grid.innerHTML = '';
-                emptyState.classList.remove('hidden');
-                return;
-            } else {
-                emptyState.classList.add('hidden');
-            }
-
-            // Category Icon Map
-            const categoryIconMap = {
-                "手工具": "fa-wrench",
-                "電子工作工具": "fa-microchip",
-                "測定器": "fa-wave-square",
-                "AV機器": "fa-video",
-                "PC・IT機器": "fa-laptop",
-                "実験器具": "fa-vial",
-                "その他": "fa-box"
-            };
-
-            grid.innerHTML = filtered.map(item => {
-                // Find active loan if borrowed
-                const activeLoan = item.status === 'BORROWED' ? window.state.loans.find(l => l.itemId === item.id && l.status === 'BORROWED') : null;
-
-                // Status Badge Colors
-                let statusBadge = '';
-                if (item.status === 'AVAILABLE') {
-                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 flex items-center gap-1"><i class="fa-solid fa-circle text-[8px]"></i> 貸出可能</span>`;
-                } else if (item.status === 'BORROWED') {
-                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 flex items-center gap-1"><i class="fa-solid fa-clock text-[8px]"></i> 貸出中</span>`;
-                } else {
-                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 flex items-center gap-1"><i class="fa-solid fa-screwdriver-wrench text-[8px]"></i> 点検中</span>`;
-                }
-
-                // Header Image or Placeholder
-                const imageSection = item.image 
-                    ? `<img src="${item.image}" alt="${item.name}" class="w-full h-40 object-cover rounded-t-2xl">`
-                    : `<div class="w-full h-32 bg-slate-100 dark:bg-slate-700/50 rounded-t-2xl flex items-center justify-center text-slate-400 text-4xl">
-                        <i class="fa-solid ${categoryIconMap[item.category] || 'fa-box'}"></i>
-                       </div>`;
-
-                return `
-                    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md transition flex flex-col justify-between overflow-hidden group">
-                        <div>
-                            <!-- Header Graphic -->
-                            <div class="relative">
-                                ${imageSection}
-                                <div class="absolute top-3 right-3">
-                                    ${statusBadge}
-                                </div>
-                                <div class="absolute bottom-2 left-3 bg-slate-900/80 text-white text-[10px] font-mono px-2 py-0.5 rounded-md backdrop-blur-sm">
-                                    ${item.code}
-                                </div>
-                            </div>
-
-                            <!-- Content -->
-                            <div class="p-4 space-y-2">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[11px] font-medium px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md">
-                                        ${item.category}
-                                    </span>
-                                </div>
-                                <h4 class="font-bold text-slate-800 dark:text-slate-100 text-sm leading-snug line-clamp-2">${item.name}</h4>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-location-dot text-brand-600"></i> 保管: ${item.location}
-                                </p>
-
-                                ${activeLoan ? `
-                                    <div class="mt-3 p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200/60 dark:border-amber-900/40 text-xs text-amber-900 dark:text-amber-200 space-y-0.5">
-                                        <p class="font-semibold"><i class="fa-solid fa-user text-amber-600"></i> 借用: ${activeLoan.borrowerName}</p>
-                                        <p class="text-[11px] text-amber-700 dark:text-amber-400">返却予定: ${activeLoan.dueDate}</p>
-                                    </div>
-                                ` : ''}
-
-                                ${item.description ? `<p class="text-xs text-slate-400 line-clamp-2 pt-1 border-t border-slate-100 dark:border-slate-700/50">${item.description}</p>` : ''}
-                            </div>
-                        </div>
-
-                        <!-- Action Controls Footer -->
-                        <div class="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
-                            <button onclick="openEditEquipmentModal('${item.id}')" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-semibold rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-700 transition" title="編集">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                            </button>
-
-                            <div class="flex gap-2">
-                                ${item.status === 'AVAILABLE' ? `
-                                    <button onclick="openCheckoutModal('${item.id}')" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1">
-                                        <i class="fa-solid fa-hand-holding"></i> 貸出する
-                                    </button>
-                                ` : ''}
-
-                                ${item.status === 'BORROWED' && activeLoan ? `
-                                    <button onclick="openReturnModal('${item.id}', '${activeLoan.id}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1">
-                                        <i class="fa-solid fa-rotate-left"></i> 返却受け付け
-                                    </button>
-                                ` : ''}
-
-                                ${item.status === 'MAINTENANCE' ? `
-                                    <button onclick="quickRestoreAvailable('${item.id}')" class="px-3 py-1.5 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1">
-                                        <i class="fa-solid fa-check"></i> 点検完了・復旧
-                                    </button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // RENDER HISTORY LOG
-        function renderHistory() {
-            const searchQuery = (document.getElementById('history-search-input')?.value || '').toLowerCase().trim();
-            const loans = window.state.loans;
-
-            let filtered = [...loans].reverse().filter(loan => {
-                return loan.itemName.toLowerCase().includes(searchQuery) ||
-                       loan.borrowerName.toLowerCase().includes(searchQuery) ||
-                       loan.borrowerId.toLowerCase().includes(searchQuery) ||
-                       (loan.notes && loan.notes.toLowerCase().includes(searchQuery));
-            });
-
-            const tbody = document.getElementById('full-history-table-body');
-            if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-xs text-slate-400">該当する貸出・返却ログが存在しません</td></tr>`;
-                return;
-            }
-
-            const today = new Date().toISOString().split('T')[0];
-
-            tbody.innerHTML = filtered.map(loan => {
-                const isReturned = loan.status === 'RETURNED';
-                const isOverdue = !isReturned && loan.dueDate < today;
-
-                let statusBadge = '';
-                if (isReturned) {
-                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">返却完了</span>`;
-                } else if (isOverdue) {
-                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300">返却遅延</span>`;
-                } else {
-                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300">貸出中</span>`;
-                }
-
-                return `
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
-                        <td class="p-3.5">${statusBadge}</td>
-                        <td class="p-3.5 font-bold text-slate-800 dark:text-slate-100 text-xs">${loan.itemName}</td>
-                        <td class="p-3.5 text-xs text-slate-700 dark:text-slate-300">
-                            <b>${loan.borrowerName}</b><br>
-                            <span class="text-slate-400 text-[10px]">${loan.borrowerId}</span>
-                        </td>
-                        <td class="p-3.5 text-xs text-slate-600 dark:text-slate-400 max-w-xs truncate">${loan.purpose || '-'}</td>
-                        <td class="p-3.5 text-xs text-slate-500">${loan.startDate}</td>
-                        <td class="p-3.5 text-xs font-semibold ${isOverdue ? 'text-rose-600' : 'text-slate-700 dark:text-slate-300'}">
-                            ${isReturned ? `返却日: ${loan.returnedDate}` : `期限: ${loan.dueDate}`}
-                        </td>
-                        <td class="p-3.5 text-right text-xs text-slate-400 max-w-xs truncate">${loan.notes || '-'}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        // CSV EXPORT FUNCTION
-        window.exportHistoryCSV = function() {
-            const loans = window.state.loans;
-            if (loans.length === 0) {
-                showToast("出力する履歴データがありません", "info");
-                return;
-            }
-
-            let csvContent = "\uFEFF"; // UTF-8 BOM
-            csvContent += "ステータス,備品名,借用者氏名,所属・学籍番号,利用目的,貸出日,返却予定日,返却完了日,備考\n";
-
-            loans.forEach(loan => {
-                const row = [
-                    loan.status === 'RETURNED' ? '返却済み' : '貸出中',
-                    `"${loan.itemName.replace(/"/g, '""')}"`,
-                    `"${loan.borrowerName.replace(/"/g, '""')}"`,
-                    `"${loan.borrowerId.replace(/"/g, '""')}"`,
-                    `"${(loan.purpose || '').replace(/"/g, '""')}"`,
-                    loan.startDate,
-                    loan.dueDate,
-                    loan.returnedDate || '',
-                    `"${(loan.notes || '').replace(/"/g, '""')}"`
-                ];
-                csvContent += row.join(",") + "\n";
-            });
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.setAttribute("href", url);
-            link.setAttribute("download", `備品貸出履歴_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            showToast("CSV履歴ログをダウンロードしました", "success");
-        };
-
-        // MODAL TOGGLE HELPERS
-        window.openModal = function(modalId) {
-            document.getElementById(`modal-${modalId}`).classList.remove('hidden');
-        };
-
-        window.closeModal = function(modalId) {
-            document.getElementById(`modal-${modalId}`).classList.add('hidden');
-        };
-
-        // Equipment Modal Form Functions
-        window.openAddEquipmentModal = function() {
-            document.getElementById('equipment-form').reset();
-            document.getElementById('eq-id').value = '';
-            document.getElementById('equipment-modal-title').innerHTML = `<i class="fa-solid fa-plus text-brand-600"></i> 備品の新規登録`;
-            document.getElementById('eq-delete-btn').classList.add('hidden');
-            openModal('equipment-modal');
-        };
-
-        window.openEditEquipmentModal = function(itemId) {
-            const item = window.state.equipment.find(i => i.id === itemId);
-            if (!item) return;
-
-            document.getElementById('eq-id').value = item.id;
-            document.getElementById('eq-name').value = item.name;
-            document.getElementById('eq-code').value = item.code;
-            document.getElementById('eq-category').value = item.category;
-            document.getElementById('eq-location').value = item.location;
-            document.getElementById('eq-status').value = item.status;
-            document.getElementById('eq-image').value = item.image || '';
-            document.getElementById('eq-description').value = item.description || '';
-
-            document.getElementById('equipment-modal-title').innerHTML = `<i class="fa-solid fa-pen-to-square text-brand-600"></i> 備品情報の編集`;
-            document.getElementById('eq-delete-btn').classList.remove('hidden');
-            openModal('equipment-modal');
-        };
-
-        window.saveEquipment = async function(e) {
-            e.preventDefault();
-            const id = document.getElementById('eq-id').value || `eq-${Date.now()}`;
-            
-            const newItem = {
-                id: id,
-                name: document.getElementById('eq-name').value.trim(),
-                code: document.getElementById('eq-code').value.trim(),
-                category: document.getElementById('eq-category').value,
-                location: document.getElementById('eq-location').value.trim(),
-                status: document.getElementById('eq-status').value,
-                image: document.getElementById('eq-image').value.trim(),
-                description: document.getElementById('eq-description').value.trim()
-            };
-
-            if (window.state.isFirebaseActive && db) {
-                try {
-                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'equipment', id), newItem);
-                } catch (err) {
-                    console.warn("Firestore save failed, saving locally:", err);
-                    saveLocalEquipment(newItem);
-                }
-            } else {
-                saveLocalEquipment(newItem);
-            }
-
-            closeModal('equipment-modal');
-            showToast("備品情報を保存しました", "success");
-        };
-
-        function saveLocalEquipment(newItem) {
-            const idx = window.state.equipment.findIndex(i => i.id === newItem.id);
-            if (idx >= 0) {
-                window.state.equipment[idx] = newItem;
-            } else {
-                window.state.equipment.push(newItem);
-            }
-            saveLocalState();
-            renderAllViews();
-        }
-
-        window.deleteEquipment = async function() {
-            const id = document.getElementById('eq-id').value;
-            if (!id) return;
-
-            if (window.state.isFirebaseActive && db) {
-                try {
-                    await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'equipment', id));
-                } catch (err) {
-                    console.warn("Firestore delete failed, deleting locally:", err);
-                    window.state.equipment = window.state.equipment.filter(i => i.id !== id);
-                    saveLocalState();
-                    renderAllViews();
-                }
-            } else {
-                window.state.equipment = window.state.equipment.filter(i => i.id !== id);
-                saveLocalState();
-                renderAllViews();
-            }
-
-            closeModal('equipment-modal');
-            showToast("備品を削除しました", "info");
-        };
-
-        // CHECKOUT / BORROW FLOW HANDLERS
-        window.openCheckoutModal = function(itemId) {
-            const item = window.state.equipment.find(i => i.id === itemId);
-            if (!item) return;
-
-            document.getElementById('checkout-item-id').value = item.id;
-            document.getElementById('checkout-item-name').innerText = item.name;
-            document.getElementById('checkout-item-code').innerText = `管理ID: ${item.code} | 保管: ${item.location}`;
-
-            // Auto-fill user if logged in
-            if (window.state.currentUser) {
-                document.getElementById('checkout-user-name').value = window.state.currentUser.name;
-            }
-
-            // Set default date range (Default 7 days return)
-            const today = new Date();
-            const dueDate = new Date(Date.now() + 7 * 86400000);
-
-            document.getElementById('checkout-start-date').value = today.toISOString().split('T')[0];
-            document.getElementById('checkout-due-date').value = dueDate.toISOString().split('T')[0];
-
-            openModal('checkout-modal');
-        };
-
-        window.processCheckout = async function(e) {
-            e.preventDefault();
-            const itemId = document.getElementById('checkout-item-id').value;
-            const item = window.state.equipment.find(i => i.id === itemId);
-            if (!item) return;
-
-            const loanId = `loan-${Date.now()}`;
-            const loanData = {
-                id: loanId,
-                itemId: item.id,
-                itemName: item.name,
-                borrowerName: document.getElementById('checkout-user-name').value.trim(),
-                borrowerId: document.getElementById('checkout-user-id').value.trim(),
-                purpose: document.getElementById('checkout-purpose').value.trim(),
-                startDate: document.getElementById('checkout-start-date').value,
-                dueDate: document.getElementById('checkout-due-date').value,
-                returnedDate: null,
-                status: "BORROWED",
-                notes: ""
-            };
-
-            // Update item status to BORROWED
-            item.status = "BORROWED";
-
-            if (window.state.isFirebaseActive && db) {
-                try {
-                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'loans', loanId), loanData);
-                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'equipment', item.id), item);
-                } catch (err) {
-                    console.warn("Firestore write error, falling back to local storage:", err);
-                    window.state.loans.push(loanData);
-                    saveLocalState();
-                    renderAllViews();
-                }
-            } else {
-                window.state.loans.push(loanData);
-                saveLocalState();
-                renderAllViews();
-            }
-
-            closeModal('checkout-modal');
-            showToast(`${item.name} の貸出を完了しました`, "success");
-        };
-
-        // RETURN FLOW HANDLERS
-        window.openReturnModal = function(itemId, loanId) {
-            const item = window.state.equipment.find(i => i.id === itemId);
-            const loan = window.state.loans.find(l => l.id === loanId);
-
-            if (!item || !loan) return;
-
-            document.getElementById('return-item-id').value = item.id;
-            document.getElementById('return-loan-id').value = loan.id;
-
-            document.getElementById('return-item-name').innerText = item.name;
-            document.getElementById('return-borrower-info').innerText = `借用者: ${loan.borrowerName} (${loan.borrowerId})`;
-            document.getElementById('return-due-info').innerText = `貸出日: ${loan.startDate} | 返却予定日: ${loan.dueDate}`;
-
-            openModal('return-modal');
-        };
-
-        window.processReturn = async function(e) {
-            e.preventDefault();
-            const itemId = document.getElementById('return-item-id').value;
-            const loanId = document.getElementById('return-loan-id').value;
-
-            const item = window.state.equipment.find(i => i.id === itemId);
-            const loan = window.state.loans.find(l => l.id === loanId);
-
-            if (!item || !loan) return;
-
-            const condition = document.getElementById('return-condition').value;
-            const notes = document.getElementById('return-notes').value.trim();
-
-            const today = new Date().toISOString().split('T')[0];
-
-            // Update Loan Object
-            loan.status = "RETURNED";
-            loan.returnedDate = today;
-            loan.notes = notes ? `【返却メモ】${notes}` : '';
-
-            // Update Equipment Status based on condition
-            if (condition === 'DAMAGED') {
-                item.status = "MAINTENANCE";
-            } else {
-                item.status = "AVAILABLE";
-            }
-
-            if (window.state.isFirebaseActive && db) {
-                try {
-                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'loans', loan.id), loan);
-                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'equipment', item.id), item);
-                } catch (err) {
-                    console.warn("Firestore update error, falling back to local storage:", err);
-                    saveLocalState();
-                    renderAllViews();
-                }
-            } else {
-                saveLocalState();
-                renderAllViews();
-            }
-
-            closeModal('return-modal');
-            showToast(`${item.name} の返却を受け付けました`, "success");
-        };
-
-        window.quickRestoreAvailable = async function(itemId) {
-            const item = window.state.equipment.find(i => i.id === itemId);
-            if (!item) return;
-
-            item.status = 'AVAILABLE';
-            if (window.state.isFirebaseActive && db) {
-                try {
-                    await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'equipment', item.id), item);
-                } catch (err) {
-                    saveLocalState();
-                    renderAllViews();
-                }
-            } else {
-                saveLocalState();
-                renderAllViews();
-            }
-            showToast("ステータスを『貸出可能』に変更しました", "success");
-        };
-
-        // Save Custom Firebase Credentials Config
-        window.saveFirebaseConfig = function() {
-            const jsonText = document.getElementById('firebase-config-json').value.trim();
-            if (!jsonText) {
-                showToast("Firebase Config JSONを入力してください", "error");
-                return;
-            }
-
-            try {
-                const parsed = JSON.parse(jsonText);
-                if (!parsed.apiKey || !parsed.projectId) {
-                    throw new Error("apiKey または projectId が含まれていません");
-                }
-                localStorage.setItem('labstock_firebase_config', JSON.stringify(parsed));
-                closeModal('firebase-modal');
-                showToast("Firebase設定を保存しました。再読み込みします...", "success");
-                setTimeout(() => location.reload(), 1200);
-            } catch (err) {
-                showToast(`JSON設定フォーマットが無効です: ${err.message}`, "error");
-            }
-        };
-
-        window.resetDemoMode = function() {
-            localStorage.removeItem('labstock_firebase_config');
-            closeModal('firebase-modal');
-            showToast("デモモードに復帰します。再読み込み中...", "info");
-            setTimeout(() => location.reload(), 1000);
-        };
-
-        // TOAST NOTIFICATIONS SYSTEM
-        function showToast(message, type = "info") {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-
-            let bg = "bg-slate-800 text-white";
-            let icon = "fa-circle-info";
-
-            if (type === 'success') {
-                bg = "bg-emerald-600 text-white shadow-emerald-500/20";
-                icon = "fa-circle-check";
-            } else if (type === 'error') {
-                bg = "bg-rose-600 text-white shadow-rose-500/20";
-                icon = "fa-circle-exclamation";
-            } else if (type === 'info') {
-                bg = "bg-brand-600 text-white shadow-brand-500/20";
-                icon = "fa-bell";
-            }
-
-            toast.className = `px-4 py-3 rounded-2xl shadow-xl ${bg} flex items-center gap-3 text-xs font-semibold pointer-events-auto transform transition-all duration-300 translate-y-2 opacity-0`;
-            toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i> <span>${message}</span>`;
-
-            container.appendChild(toast);
-
-            // Animate In
-            requestAnimationFrame(() => {
-                toast.classList.remove('translate-y-2', 'opacity-0');
-            });
-
-            // Auto Remove
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-2');
-                setTimeout(() => toast.remove(), 300);
-            }, 3500);
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#039;");
         }
     </script>
 </body>
